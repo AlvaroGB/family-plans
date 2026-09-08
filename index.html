@@ -57,8 +57,16 @@
   .chips {
     display: flex; gap: 10px 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
     padding: 8px 0 2px; margin: 0 -2px; scrollbar-width: none;
+    /* Prevent flex items from stretching tall when any child wraps */
+    align-items: center;
   }
   .chips::-webkit-scrollbar { display: none; }
+  /* Flatten month wrapper so each month chip is a first-class flex item */
+  #month-chips { display: contents; }
+  /* Fallback for browsers without display: contents */
+  @supports not (display: contents) {
+    #month-chips { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; }
+  }
   .chip {
     display: inline-flex; align-items: center; justify-content: center;
     flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
@@ -97,6 +105,11 @@
   #custom-inline {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: end;
     padding: 4px 0 2px;
+  }
+  /* Mobile: collapse free-range dates by default to keep header compact */
+  @media (max-width: 719px) {
+    #custom-inline { display: none; }
+    #custom-inline.open { display: flex; }
   }
   #custom-inline .di {
     display: flex; flex-direction: column; gap: 4px; min-width: 9.5rem;
@@ -176,12 +189,24 @@
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
 
+  /* Tighter, more compact header + chips on small phones */
+  @media (max-width: 480px) {
+    header { margin: -12px -14px 10px; padding: calc(8px + var(--safe-t)) 10px 6px; }
+    h1 { font-size: 1.05rem; }
+    .sub { font-size: .78rem; }
+    .chip { min-height: 32px; padding: 6px 10px; font-size: .82rem; }
+    .icon-btn { min-height: 36px; padding: 6px 10px; font-size: .8rem; }
+  }
+
   @media (min-width: 720px) {
     :root { --max: 920px; }
     .wrap { padding: 20px 24px 40px; }
     header { margin: -20px -24px 18px; padding: calc(18px + var(--safe-t)) 24px 12px; }
     h1 { font-size: 1.45rem; }
     .chips { flex-wrap: wrap; overflow: visible; }
+    /* Desktop: show free-range dates inline; the toggle chip is not needed */
+    #custom-inline { display: flex !important; }
+    #date-toggle { display: none; }
     #list, #pinned { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
@@ -226,6 +251,7 @@
           <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
           <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
           <span id="month-chips" aria-label="Meses"></span>
+          <button type="button" class="chip" id="date-toggle" aria-expanded="false" aria-controls="custom-inline" title="Rango libre">Fechas</button>
           <div id="custom-inline" title="Rango libre">
             <div class="di">
               <label for="from">Desde</label>
@@ -872,9 +898,11 @@ const empty = document.getElementById("filter-empty");
 const settings = document.getElementById("settings");
 const fromEl = document.getElementById("from");
 const toEl = document.getElementById("to");
+const customInline = document.getElementById("custom-inline");
 const listLabel = document.getElementById("list-label");
 const kidsEditor = document.getElementById("kids-editor");
 const monthChips = document.getElementById("month-chips");
+const dateToggle = document.getElementById("date-toggle");
 
 function setChip(preset) {
   document.querySelectorAll(".chip").forEach(c => {
@@ -1042,13 +1070,20 @@ document.getElementById("save-profile").addEventListener("click", () => {
 });
 
 buildMonthChips();
-document.querySelectorAll(".chip").forEach(chip => {
+/* Only bind to preset chips; the 'Fechas' toggle is handled separately */
+document.querySelectorAll('.chip[data-preset]').forEach(chip => {
   chip.addEventListener("click", () => {
     mode = chip.dataset.preset;
     setChip(mode);
     render();
   });
 });
+if (dateToggle) {
+  dateToggle.addEventListener("click", () => {
+    const isOpen = customInline.classList.toggle("open");
+    dateToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+}
 function useCustomRange() {
   mode = "custom";
   document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "false"));
