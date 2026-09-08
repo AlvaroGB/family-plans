@@ -57,8 +57,16 @@
   .chips {
     display: flex; gap: 10px 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
     padding: 8px 0 2px; margin: 0 -2px; scrollbar-width: none;
+    /* Prevent flex items from stretching tall when any child wraps */
+    align-items: center;
   }
   .chips::-webkit-scrollbar { display: none; }
+  /* Flatten month wrapper so each month chip is a first-class flex item */
+  #month-chips { display: contents; }
+  /* Fallback for browsers without display: contents */
+  @supports not (display: contents) {
+    #month-chips { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; }
+  }
   .chip {
     display: inline-flex; align-items: center; justify-content: center;
     flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
@@ -97,6 +105,11 @@
   #custom-inline {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: end;
     padding: 4px 0 2px;
+  }
+  /* Mobile: collapse free-range dates by default to keep header compact */
+  @media (max-width: 719px) {
+    #custom-inline { display: none; }
+    #custom-inline.open { display: flex; }
   }
   #custom-inline .di {
     display: flex; flex-direction: column; gap: 4px; min-width: 9.5rem;
@@ -175,6 +188,23 @@
   #filter-empty { display: none; }
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
+  /* Simple chronological grouping */
+  .day-group { display: grid; gap: 12px; position: relative; }
+  .day-label {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin: 8px 2px 2px; font-weight: 700;
+    background: rgba(238,243,241,.85); border: 1px solid var(--line);
+    padding: 3px 8px; border-radius: 999px; width: max-content;
+  }
+
+  /* Tighter, more compact header + chips on small phones */
+  @media (max-width: 480px) {
+    header { margin: -12px -14px 10px; padding: calc(8px + var(--safe-t)) 10px 6px; }
+    h1 { font-size: 1.05rem; }
+    .sub { font-size: .78rem; }
+    .chip { min-height: 32px; padding: 6px 10px; font-size: .82rem; }
+    .icon-btn { min-height: 36px; padding: 6px 10px; font-size: .8rem; }
+  }
 
   @media (min-width: 720px) {
     :root { --max: 920px; }
@@ -182,6 +212,9 @@
     header { margin: -20px -24px 18px; padding: calc(18px + var(--safe-t)) 24px 12px; }
     h1 { font-size: 1.45rem; }
     .chips { flex-wrap: wrap; overflow: visible; }
+    /* Desktop: show free-range dates inline; the toggle chip is not needed */
+    #custom-inline { display: flex !important; }
+    #date-toggle { display: none; }
     #list, #pinned { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
@@ -226,6 +259,7 @@
           <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
           <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
           <span id="month-chips" aria-label="Meses"></span>
+          <button type="button" class="chip" id="date-toggle" aria-expanded="false" aria-controls="custom-inline" title="Rango libre">Fechas</button>
           <div id="custom-inline" title="Rango libre">
             <div class="di">
               <label for="from">Desde</label>
@@ -253,6 +287,9 @@
           <label for="pf-base">Base / zona</label>
           <input id="pf-base" type="text" placeholder="Ciudad o zona"/>
         </div>
+      </div>
+      <div class="form-actions" style="margin-top:8px">
+        <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
       </div>
       <div class="form-grid" style="margin-top:10px">
         <div>
@@ -371,6 +408,14 @@ const HOME_CITIES = {
   "colunga": { lat: 43.477, lng: -5.274 },
   "peon": { lat: 43.459, lng: -5.58 },
   "arroes": { lat: 43.477, lng: -5.596 }
+};
+const DISPLAY_HOME_NAMES = {
+  gijon: "Gijón",
+  mieres: "Mieres",
+  villaviciosa: "Villaviciosa",
+  colunga: "Colunga",
+  peon: "Peón",
+  arroes: "Arroes"
 };
 const PLACES = {
   "laboral": { lat: 43.532, lng: -5.628 },
@@ -872,9 +917,11 @@ const empty = document.getElementById("filter-empty");
 const settings = document.getElementById("settings");
 const fromEl = document.getElementById("from");
 const toEl = document.getElementById("to");
+const customInline = document.getElementById("custom-inline");
 const listLabel = document.getElementById("list-label");
 const kidsEditor = document.getElementById("kids-editor");
 const monthChips = document.getElementById("month-chips");
+const dateToggle = document.getElementById("date-toggle");
 
 function setChip(preset) {
   document.querySelectorAll(".chip").forEach(c => {
@@ -914,7 +961,8 @@ function filtered() {
     const horizon = addDays(TODAY, 21);
     return EVENTS.filter(ev => overlaps(ev, TODAY, horizon))
       .filter(ev => ev.priority >= 45 || ev.tags.includes("booked") || ev.tags.includes("urgent") || ev.tags.includes("ticket"))
-      .sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+      // Primary order: chronological by start date; ties by priority desc
+      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   }
   if (mode === "weekend") {
     const [sat, sun] = upcomingWeekend(TODAY);
@@ -1017,7 +1065,24 @@ function render() {
   pinnedWrap.hidden = pinnedItems.length === 0;
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
   const rest = items.filter(ev => !pins.has(ev.id));
-  list.innerHTML = rest.map(cardHTML).join("");
+  // Group by day for a simple timeline
+  const groups = {};
+  for (const ev of rest) {
+    const key = ev.start; // all-day events use start date as grouping key
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(ev);
+  }
+  const orderedKeys = Object.keys(groups).sort(); // chronological
+  const parts = [];
+  for (const k of orderedKeys) {
+    const label = formatDay(k);
+    const cards = groups[k]
+      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority)
+      .map(cardHTML)
+      .join("");
+    parts.push(`<div class="day-group"><div class="day-label">${label}</div>${cards}</div>`);
+  }
+  list.innerHTML = parts.join("");
   empty.style.display = (rest.length || pinnedItems.length) ? "none" : "block";
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
@@ -1042,13 +1107,20 @@ document.getElementById("save-profile").addEventListener("click", () => {
 });
 
 buildMonthChips();
-document.querySelectorAll(".chip").forEach(chip => {
+/* Only bind to preset chips; the 'Fechas' toggle is handled separately */
+document.querySelectorAll('.chip[data-preset]').forEach(chip => {
   chip.addEventListener("click", () => {
     mode = chip.dataset.preset;
     setChip(mode);
     render();
   });
 });
+if (dateToggle) {
+  dateToggle.addEventListener("click", () => {
+    const isOpen = customInline.classList.toggle("open");
+    dateToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+}
 function useCustomRange() {
   mode = "custom";
   document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "false"));
@@ -1066,6 +1138,39 @@ toEl.value = ymd(addDays(TODAY, 14));
 document.getElementById("updated").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 render();
+
+// Geolocation button: set base to nearest known city
+const useGeoBtn = document.getElementById("use-geo");
+if (useGeoBtn && "geolocation" in navigator) {
+  useGeoBtn.addEventListener("click", () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const here = { lat: latitude, lng: longitude };
+        let bestKey = null;
+        let bestD = Infinity;
+        for (const [k, coords] of Object.entries(HOME_CITIES)) {
+          const d = haversineKm(here, coords);
+          if (d < bestD) { bestD = d; bestKey = k; }
+        }
+        if (bestKey) {
+          profile.base = DISPLAY_HOME_NAMES[bestKey] || bestKey;
+          const baseEl = document.getElementById("pf-base");
+          if (baseEl) baseEl.value = profile.base;
+          saveProfile(profile);
+          render();
+        }
+      },
+      () => {
+        alert("No se pudo obtener la ubicación.");
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  });
+} else if (useGeoBtn) {
+  useGeoBtn.disabled = true;
+  useGeoBtn.textContent = "Ubicación no disponible";
+}
 </script>
 </body>
 </html>
