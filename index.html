@@ -511,7 +511,7 @@ const EVENTS = [
     why: "Taller práctico 4–11 para {{kid0}}. Si {{kid1}} es menor, el taller le queda grande (museo 0–3 gratis).",
     place: "Colunga",
     locKey: "colunga",
-    priority: 95, type: "booked", tags: ["booked"],
+    priority: 95, type: "museo", tags: ["booked"],
     link: "https://www.museojurasicoasturias.com/",
     linkLabel: "MUJA"
   },
@@ -1043,6 +1043,7 @@ function cardHTML(ev) {
   const [bClass, bLabel] = typeBadge(ev.type);
   const urgent = ev.tags.includes("urgent") ? `<span class="badge urgent">Urgente</span>` : "";
   const soonTag = ev.tags.includes("soon") ? `<span class="badge soon">Próximo</span>` : "";
+  const booked = ev.tags.includes("booked") ? `<span class="badge booked">Reservado</span>` : "";
   const pinBadge = pinned ? `<span class="badge pinned">Fijado</span>` : "";
   const ariaLabel = pinned ? ("Quitar «" + tpl(ev.title) + "» de Fijados") : ("Fijar «" + tpl(ev.title) + "»");
   const titleAttr = pinned ? "Quitar de Fijados" : "Fijar";
@@ -1053,7 +1054,7 @@ function cardHTML(ev) {
   return `<article class="card type-${ev.type}${pinned ? " pinned-card" : ""}" data-id="${ev.id}">
     <div class="top-row">
       <div class="badges">
-        <span class="badge ${bClass}">${bLabel}</span>${soonTag}${urgent}${pinBadge}
+        <span class="badge ${bClass}">${bLabel}</span>${booked}${soonTag}${urgent}${pinBadge}
       </div>
       <button type="button" class="pin-btn" data-pin="${ev.id}" aria-pressed="${pinned ? "true" : "false"}" aria-label="${ariaLabel}" title="${titleAttr}">${pinned ? "Fijado" : "Fijar"}</button>
     </div>
