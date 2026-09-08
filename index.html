@@ -1335,10 +1335,24 @@ function filtered() {
   }
   if (mode === "weekend") {
     const [sat, sun] = upcomingWeekend(TODAY);
-    return EVENTS.filter(ev => overlaps(ev, sat, sun)).sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+    // Only include events whose START date is within Sat–Sun (inclusive)
+    return EVENTS
+      .filter(ev => {
+        const s = parseYMD(ev.start);
+        return s >= sat && s <= sun;
+      })
+      .sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
   }
   if (mode === "week") {
-    return EVENTS.filter(ev => overlaps(ev, TODAY, addDays(TODAY, 6))).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
+    // 7-day window from TODAY; include only events whose START is inside (inclusive)
+    const wStart = TODAY;
+    const wEnd = addDays(TODAY, 6);
+    return EVENTS
+      .filter(ev => {
+        const s = parseYMD(ev.start);
+        return s >= wStart && s <= wEnd;
+      })
+      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   }
   if (mode === "m0" || mode === "m1" || mode === "m2") {
     const offset = Number(mode.slice(1));
