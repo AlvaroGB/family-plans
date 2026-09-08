@@ -228,6 +228,10 @@
           <input id="pf-radius" type="number" min="15" max="180" step="5" placeholder="60"/>
         </div>
       </div>
+      <label class="check-row" style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:.9rem;color:var(--ink)">
+        <input id="pf-cal" type="checkbox" style="width:auto;margin-top:3px"/>
+        <span>Al fijar, abrir Google Calendar con el plan (si estás logueado en Google, solo confirmas)</span>
+      </label>
       <p class="section-label" style="margin-top:14px">Niños</p>
       <div id="kids-editor"></div>
       <div class="form-actions">
@@ -257,6 +261,7 @@ const DEFAULT_PROFILE = {
   base: "",
   adults: "",
   radiusMin: 60,
+  calendarOnPin: false,
   kids: [
     { name: "", birthYear: null },
     { name: "", birthYear: null }
@@ -277,6 +282,7 @@ function loadProfile() {
       base: raw.base || "",
       adults: raw.adults || "",
       radiusMin: Number(raw.radiusMin) || 60,
+      calendarOnPin: !!raw.calendarOnPin,
       kids: Array.isArray(raw.kids) && raw.kids.length ? raw.kids.map(k => ({
         name: k.name || "",
         birthYear: k.birthYear ? Number(k.birthYear) : null
@@ -478,6 +484,49 @@ function overlaps(ev, from, to) {
 function formatDay(s) {
   return parseYMD(s).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
 }
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+function gcalStamp(d, hm) {
+  // hm "HH:MM" optional; all-day if missing
+  if (!hm) {
+    return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}`;
+  }
+  const [H,M] = hm.split(":").map(Number);
+  return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}T${pad2(H)}${pad2(M||0)}00`;
+}
+function parseFirstTime(times) {
+  if (!times) return null;
+  const m = times.match(/\\b(\\d{1,2}:\\d{2})\\b/);
+  return m ? m[1] : null;
+}
+function openGoogleCalendar(ev) {
+  const start = parseYMD(ev.start);
+  const end = parseYMD(ev.end);
+  const t0 = parseFirstTime(ev.times);
+  let dates;
+  if (t0) {
+    const [H,M] = t0.split(":").map(Number);
+    const s = new Date(start.getFullYear(), start.getMonth(), start.getDate(), H, M||0);
+    const e = new Date(s.getTime() + 90*60*1000);
+    dates = gcalStamp(s, `${pad2(s.getHours())}:${pad2(s.getMinutes())}`) + "/" +
+            gcalStamp(e, `${pad2(e.getHours())}:${pad2(e.getMinutes())}`);
+  } else if (ev.start === ev.end) {
+    const next = addDays(start, 1);
+    dates = gcalStamp(start) + "/" + gcalStamp(next);
+  } else {
+    const next = addDays(end, 1);
+    dates = gcalStamp(start) + "/" + gcalStamp(next);
+  }
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: tpl(ev.title),
+    dates,
+    details: tpl(ev.why || ""),
+    location: tpl(ev.place || profile.base || "")
+  });
+  window.open("https://calendar.google.com/calendar/render?" + params.toString(), "_blank", "noopener");
+}
+
 function loadPins() {
   try { return new Set(JSON.parse(localStorage.getItem(PIN_KEY) || "[]")); }
   catch { return new Set(); }
@@ -560,7 +609,15 @@ function bindPins(root) {
   root.querySelectorAll("[data-pin]").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-pin");
-      if (pins.has(id)) pins.delete(id); else pins.add(id);
+      const wasPinned = pins.has(id);
+      if (wasPinned) pins.delete(id);
+      else {
+        pins.add(id);
+        if (profile.calendarOnPin) {
+          const ev = EVENTS.find(e => e.id === id);
+          if (ev) openGoogleCalendar(ev);
+        }
+      }
       savePins(pins);
       render();
     });
@@ -593,6 +650,7 @@ function readProfileForm() {
   profile.base = document.getElementById("pf-base").value.trim();
   profile.adults = document.getElementById("pf-adults").value.trim();
   profile.radiusMin = Number(document.getElementById("pf-radius").value) || 60;
+  profile.calendarOnPin = document.getElementById("pf-cal").checked;
   profile.kids = [...kidsEditor.querySelectorAll(".kid-row")].map(row => ({
     name: row.querySelector('[data-k="name"]').value.trim(),
     birthYear: row.querySelector('[data-k="birthYear"]').value ? Number(row.querySelector('[data-k="birthYear"]').value) : null
@@ -604,6 +662,7 @@ function fillProfileForm() {
   document.getElementById("pf-base").value = profile.base || "";
   document.getElementById("pf-adults").value = profile.adults || "";
   document.getElementById("pf-radius").value = profile.radiusMin || 60;
+  document.getElementById("pf-cal").checked = !!profile.calendarOnPin;
   renderKidsEditor();
 }
 function render() {
