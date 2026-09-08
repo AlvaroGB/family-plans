@@ -55,15 +55,26 @@
   .chips {
     display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
     padding: 12px 0 4px; margin: 0 -2px; scrollbar-width: none;
-    flex-wrap: nowrap;
+    flex-wrap: nowrap; align-items: center;
   }
   .chips::-webkit-scrollbar { display: none; }
   .chip {
     flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
-    color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: .85rem;
-    font-weight: 600; cursor: pointer;
+    color: var(--ink); border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 36px; padding: 0 14px; line-height: 1;
+    font-size: .85rem; font-weight: 600; cursor: pointer;
   }
   .chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
+  /* location controls */
+  .location { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+  .loc-text { font-size: .78rem; color: var(--muted); }
+  .loc-btn {
+    border: 1px solid var(--line); background: var(--card);
+    border-radius: 999px; padding: 6px 10px;
+    font-weight: 700; font-size: .85rem; color: var(--ink);
+    cursor: pointer;
+  }
   .panel {
     background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
     padding: 14px; margin-bottom: 16px; border: 1px solid var(--line);
@@ -203,6 +214,15 @@
     .btn { flex: 0 1 auto; min-width: 140px; }
   }
 
+  /* compact mobile sticky header/tabs */
+  @media (max-width: 719px) {
+    header { padding: 10px 12px 8px; }
+    .chips { gap: 6px; padding: 8px 0 2px; }
+    .chip { height: 32px; padding: 0 12px; font-size: .82rem; }
+    .loc-btn { padding: 4px 9px; font-size: .82rem; }
+    .loc-text { font-size: .74rem; }
+  }
+
   /* desktop */
   @media (min-width: 1100px) {
     :root { --max: 1180px; }
@@ -224,6 +244,10 @@
       <div class="header-inner">
         <h1>Planes familia</h1>
         <p class="sub">Gijón / Mieres · Adrián (4) y Vera (2)</p>
+        <div class="location">
+          <span class="loc-text" id="loc-label">Centro: Gijón</span>
+          <button type="button" class="loc-btn" id="use-geo">Usar mi ubicación</button>
+        </div>
         <div class="chips" role="toolbar" aria-label="Atajos de fechas">
           <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
           <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
@@ -262,6 +286,60 @@
 const _now = new Date();
 const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
 const PIN_KEY = "family-plans-pinned-v1";
+
+/* location storage (for future radius filters) */
+const LOC_KEY = "family-plans-location-v1";
+const DEFAULT_LOC = { lat: 43.545, lng: -5.661, label: "Gijón" }; // Gijón centro aprox
+function loadLoc() {
+  try {
+    return JSON.parse(localStorage.getItem(LOC_KEY) || "null") || DEFAULT_LOC;
+  } catch {
+    return DEFAULT_LOC;
+  }
+}
+function saveLoc(loc) {
+  localStorage.setItem(LOC_KEY, JSON.stringify(loc));
+}
+let loc = loadLoc();
+const locLabel = document.getElementById("loc-label");
+function updateLocUI() {
+  if (locLabel) {
+    const label = loc.label || `${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`;
+    locLabel.textContent = `Centro: ${label}`;
+  }
+}
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+    const res = await fetch(url, { headers: { "Accept-Language": "es-ES" } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const a = data.address || {};
+    return a.city || a.town || a.village || a.municipality || a.county || null;
+  } catch {
+    return null;
+  }
+}
+const useGeoBtn = document.getElementById("use-geo");
+if (useGeoBtn) {
+  useGeoBtn.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      alert("Tu navegador no permite geolocalización. Usaremos Gijón por defecto.");
+      loc = DEFAULT_LOC; saveLoc(loc); updateLocUI(); return;
+    }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      let label = await reverseGeocode(lat, lng);
+      loc = { lat, lng, label: label || "Mi ubicación" };
+      saveLoc(loc); updateLocUI();
+    }, () => {
+      alert("No se pudo obtener la ubicación. Usaremos Gijón.");
+      loc = DEFAULT_LOC; saveLoc(loc); updateLocUI();
+    }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+  });
+}
+updateLocUI();
 
 const EVENTS = [
   {
