@@ -126,17 +126,28 @@
   .eg-row .btn { flex: 0 0 auto; }
   /* Heatmap strip */
   .heatmap {
-    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-    gap: 3px; padding: 6px 2px 8px; margin: 6px 0 2px;
-    border-radius: 10px; background: rgba(255,255,255,.6); border: 1px solid var(--line);
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 9px;
+    grid-template-rows: repeat(7, 8px);
+    gap: 2px;
+    padding: 6px 6px 6px;
+    margin: 6px 0 2px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.6);
+    border: 1px solid var(--line);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .hm-cell {
-    height: 12px; border-radius: 3px; background: #e8eeec; cursor: pointer;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    background: #e8eeec;
+    cursor: pointer;
   }
-  .hm-cell[data-level="1"] { background: #bfeae1; }
-  .hm-cell[data-level="2"] { background: #7fd4c6; }
-  .hm-cell[data-level="3"] { background: #3fbfae; }
-  .hm-cell[data-level="4"] { background: #0f766e; }
+  /* Estados: amarillo = inventario; verde = fijado */
+  .hm-cell.has { background: #fde68a; }
+  .hm-cell.pin { background: #10b981; }
   .heatmap-label { font-size: .74rem; color: var(--muted); margin: 0 0 6px 4px; }
   #list, #pinned { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 8px; }
   .card {
@@ -152,6 +163,8 @@
   .card.type-watch { --accent: #64748b; background: linear-gradient(145deg, #f1f5f9 0%, #fff 45%); border-color: #e2e8f0; }
   .card.type-aldea { --accent: #65a30d; background: linear-gradient(145deg, #f7fee7 0%, #fff 45%); border-color: #d9f99d; }
   .card.type-soon { --accent: #0891b2; background: linear-gradient(145deg, #ecfeff 0%, #fff 45%); border-color: #a5f3fc; }
+  .card.type-siempre { --accent: #64748b; background: linear-gradient(145deg, #f1f5f9 0%, #fff 45%); border-color: #cbd5e1; }
+  .card.type-hike { --accent: #16a34a; background: linear-gradient(145deg, #ecfdf5 0%, #fff 45%); border-color: #bbf7d0; }
   .card.pinned-card { box-shadow: 0 0 0 2px rgba(15,118,110,.18), var(--shadow); }
   /* Calm hover/focus for pointer users */
   @media (hover: hover) and (pointer: fine) {
@@ -173,11 +186,12 @@
   .badge.ticket { background: #ffedd5; color: #c2410c; }
   .badge.beach { background: #e0f2fe; color: #0369a1; }
   .badge.pinned { background: #ccfbf1; color: #0f766e; }
-  /* New badge types */
+  /* Tipos adicionales para evergreen */
   .badge.park { background: #dcfce7; color: #166534; }
   .badge.hike { background: #fee2e2; color: #991b1b; }
   .badge.museo { background: #ede9fe; color: #5b21b6; }
   .badge.siempre { background: #e5e7eb; color: #374151; }
+  .badge.other { background: #e5e7eb; color: #374151; }
   /* Subtle emoji markers on badges (visual only) */
   .badge.ticket::before { content: "🎟️ "; }
   .badge.booked::before { content: "✅ "; }
@@ -213,14 +227,7 @@
   #filter-empty { display: none; }
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
-  /* Simple chronological grouping */
-  .day-group { display: grid; gap: 12px; position: relative; }
-  .day-label {
-    font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--muted); margin: 8px 2px 2px; font-weight: 700;
-    background: rgba(238,243,241,.85); border: 1px solid var(--line);
-    padding: 3px 8px; border-radius: 999px; width: max-content;
-  }
+  /* (Removed timeline grouping UI; list is flat chronological cards) */
 
   /* Tighter, more compact header + chips on small phones */
   @media (max-width: 480px) {
@@ -241,7 +248,7 @@
     /* Desktop: show free-range dates inline; the toggle chip is not needed */
     #custom-inline { display: flex !important; }
     #date-toggle { display: none; }
-    #list, #pinned { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    #list, #pinned { grid-template-columns: 1fr; gap: 14px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
     .btn { flex: 0 1 auto; min-width: 140px; }
@@ -251,7 +258,7 @@
     :root { --max: 1180px; }
     .wrap { padding: 28px 32px 48px; }
     header { margin: -28px -32px 22px; padding: calc(22px + var(--safe-t)) 32px 14px; }
-    #list, #pinned { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    #list, #pinned { grid-template-columns: 1fr; gap: 16px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
   }
@@ -1011,7 +1018,7 @@ function typeBadge(type) {
     siempre: ["siempre", "Siempre"],
     soon: ["soon", "Próximo"]
   };
-  return map[type] || ["soon", "Próximo"];
+  return map[type] || ["other", "Plan"];
 }
 function evergreenPinId(egId, dateStr) {
   return `evergreen:${egId}@${dateStr}`;
@@ -1035,6 +1042,7 @@ function cardHTML(ev) {
   const pinned = pins.has(ev.id);
   const [bClass, bLabel] = typeBadge(ev.type);
   const urgent = ev.tags.includes("urgent") ? `<span class="badge urgent">Urgente</span>` : "";
+  const soonTag = ev.tags.includes("soon") ? `<span class="badge soon">Próximo</span>` : "";
   const pinBadge = pinned ? `<span class="badge pinned">Fijado</span>` : "";
   const ariaLabel = pinned ? ("Quitar «" + tpl(ev.title) + "» de Fijados") : ("Fijar «" + tpl(ev.title) + "»");
   const titleAttr = pinned ? "Quitar de Fijados" : "Fijar";
@@ -1045,9 +1053,9 @@ function cardHTML(ev) {
   return `<article class="card type-${ev.type}${pinned ? " pinned-card" : ""}" data-id="${ev.id}">
     <div class="top-row">
       <div class="badges">
-        <span class="badge ${bClass}">${bLabel}</span>${urgent}${pinBadge}
+        <span class="badge ${bClass}">${bLabel}</span>${soonTag}${urgent}${pinBadge}
       </div>
-      <button type="button" class="pin-btn" data-pin="${ev.id}" aria-pressed="${pinned ? "true" : "false"} aria-label="${ariaLabel}" title="${titleAttr}">${pinned ? "Fijado" : "Fijar"}</button>
+      <button type="button" class="pin-btn" data-pin="${ev.id}" aria-pressed="${pinned ? "true" : "false"}" aria-label="${ariaLabel}" title="${titleAttr}">${pinned ? "Fijado" : "Fijar"}</button>
     </div>
     <p class="when">${when}</p>
     <h3 class="title">${tpl(ev.title)}</h3>
@@ -1110,38 +1118,67 @@ function buildMonthChips() {
 }
 function renderHeatmap() {
   if (!heatmapEl) return;
-  const days = 28;
-  const counts = new Array(days).fill(0);
-  const start = TODAY;
-  const pinnedIds = [...pins];
-  const pinnedEvents = EVENTS.filter(ev => pinnedIds.includes(ev.id));
-  // Add counts from event pins (by overlap)
-  for (let i = 0; i < days; i++) {
-    const d = addDays(start, i);
-    const to = d;
-    for (const ev of pinnedEvents) {
-      if (overlaps(ev, d, to)) counts[i] += 1;
+  const weeks = 5; // ~5 semanas (~35 días)
+  const totalDays = weeks * 7;
+  const dowMon0 = (d) => (d.getDay() + 6) % 7; // 0=lun .. 6=dom
+  const startOfWeek = (d) => addDays(d, -dowMon0(d));
+  const start = startOfWeek(TODAY);
+  const end = addDays(start, totalDays - 1);
+
+  // Conjuntos de días «verdes» (fijados) y «amarillos» (inventario)
+  const green = new Set(); // YYYY-MM-DD con fijados
+  const yellow = new Set(); // YYYY-MM-DD con inventario (EVENTS o EG fechados)
+
+  // Pinned events (por ID normal): marcan verde y también inventario
+  const pinnedIds = [...pins].filter(id => !id.startsWith("evergreen:"));
+  for (const id of pinnedIds) {
+    const ev = EVENTS.find(e => e.id === id);
+    if (!ev) continue;
+    const s = parseYMD(ev.start);
+    const e = parseYMD(ev.end);
+    const a = s < start ? start : s;
+    const b = e > end ? end : e;
+    for (let d = a; d <= b; d = addDays(d, 1)) {
+      const k = ymd(d);
+      green.add(k);
+      yellow.add(k);
     }
   }
-  // Add counts from evergreen pins (exact date matches)
-  for (const pid of pinnedIds) {
+  // Evergreen fijados (ID con fecha exacta)
+  for (const pid of pins) {
     const eg = parseEvergreenPinId(pid);
     if (!eg) continue;
-    const egDate = parseYMD(eg.date);
-    const idx = Math.round((egDate - start) / (24*60*60*1000));
-    if (idx >= 0 && idx < days) counts[idx] += 1;
+    const d = parseYMD(eg.date);
+    if (d >= start && d <= end) {
+      const k = ymd(d);
+      green.add(k);
+      yellow.add(k);
+    }
   }
+  // Inventario por eventos disponibles (EVENTS que solapan el día)
+  for (let i = 0; i < totalDays; i++) {
+    const d = addDays(start, i);
+    for (const ev of EVENTS) {
+      if (overlaps(ev, d, d)) {
+        yellow.add(ymd(d));
+      }
+    }
+  }
+  // Render: 7 filas (lun→dom), columnas por semana
   const cells = [];
-  for (let i = 0; i < days; i++) {
+  for (let i = 0; i < totalDays; i++) {
     const d = addDays(start, i);
     const dateStr = ymd(d);
-    const c = counts[i];
-    const level = c >= 4 ? 4 : c; // 0..4
     const div = document.createElement("div");
     div.className = "hm-cell";
-    if (level > 0) div.setAttribute("data-level", String(level));
+    // estado visual: verde > amarillo > vacío
+    if (green.has(dateStr)) div.classList.add("pin");
+    else if (yellow.has(dateStr)) div.classList.add("has");
+    // posición por fila (día de semana)
+    div.style.gridRowStart = String(dowMon0(d) + 1);
     div.setAttribute("data-date", dateStr);
-    div.title = `${formatDay(dateStr)} · ${c ? c : "sin"} fijados`;
+    const titleState = green.has(dateStr) ? "fijado" : (yellow.has(dateStr) ? "inventario" : "sin planes");
+    div.title = `${formatDay(dateStr)} · ${titleState}`;
     div.addEventListener("click", () => {
       fromEl.value = dateStr;
       toEl.value = dateStr;
@@ -1162,6 +1199,7 @@ function renderEvergreen() {
   const html = data.map((it, idx) => {
     const t = it.title || `Elemento ${idx+1}`;
     const type = it.type || "soon";
+    const [bClass, bLabel] = typeBadge(type);
     const link = it.link ? `<a class="btn ghost" href="${it.link}" target="_blank" rel="noopener">${normalizeLinkLabel(it.linkLabel || "Abrir")}</a>` : "";
     const egId = it.id || `ever-${idx}`;
     const [sat] = upcomingWeekend(TODAY);
@@ -1169,45 +1207,35 @@ function renderEvergreen() {
     const pinnedNow = isEvergreenPinnedForDate(egId, defaultDate);
     const btnLabel = pinnedNow ? "Quitar" : "Fijar";
     return `<article class="card type-${type}">
+      <div class="badges">
+        <span class="badge ${bClass}">${bLabel}</span>
+      </div>
       <h3 class="title">${t}</h3>
       <div class="eg-row">
-        <input type="date" class="eg-date" data-eg-date="${egId}" value="${defaultDate}"/>
         <button type="button" class="btn primary" data-evergreen="${egId}" data-default="${defaultDate}">${btnLabel}</button>
         ${link}
       </div>
     </article>`;
   }).join("");
   evergreenEl.innerHTML = html;
-  // Click: toggle pin for selected date
+  // Click: pedir fecha y alternar pin en esa fecha
   evergreenEl.querySelectorAll("[data-evergreen]").forEach(btn => {
     btn.addEventListener("click", () => {
       const egId = btn.getAttribute("data-evergreen");
-      const input = evergreenEl.querySelector(`[data-eg-date="${egId}"]`);
-      const date = (input && input.value) ? input.value : (btn.getAttribute("data-default") || ymd(TODAY));
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return;
-      const pid = evergreenPinId(egId, date);
-      if (pins.has(pid)) {
-        pins.delete(pid);
-      } else {
-        pins.add(pid);
-      }
+      const def = btn.getAttribute("data-default") || ymd(TODAY);
+      const picked = window.prompt("Elige fecha (YYYY-MM-DD)", def);
+      if (!picked) return; // cancelado
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(picked)) { alert("Fecha inválida"); return; }
+      const pid = evergreenPinId(egId, picked);
+      if (pins.has(pid)) pins.delete(pid);
+      else pins.add(pid);
       savePins(pins);
-      // Update label immediately
-      btn.textContent = pins.has(pid) ? "Quitar" : "Fijar";
+      // Actualiza etiqueta según estado del default
+      const showPinned = isEvergreenPinnedForDate(egId, def);
+      btn.textContent = showPinned ? "Quitar" : "Fijar";
       renderHeatmap();
       // Optionally update pinned section if visible (does not include evergreen pins)
       pinnedWrap.hidden = (document.getElementById("pinned").children.length === 0);
-    });
-  });
-  // Change: update button label when date changes
-  evergreenEl.querySelectorAll("[data-eg-date]").forEach(inp => {
-    inp.addEventListener("change", () => {
-      const egId = inp.getAttribute("data-eg-date");
-      const date = inp.value || inp.getAttribute("value");
-      const btn = evergreenEl.querySelector(`[data-evergreen="${egId}"]`);
-      if (!btn) return;
-      const pid = evergreenPinId(egId, date);
-      btn.textContent = pins.has(pid) ? "Quitar" : "Fijar";
     });
   });
 }
@@ -1221,10 +1249,21 @@ function filtered() {
   }
   if (mode === "weekend") {
     const [sat, sun] = upcomingWeekend(TODAY);
-    return EVENTS.filter(ev => overlaps(ev, sat, sun)).sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+    return EVENTS
+      .filter(ev => {
+        const s = parseYMD(ev.start);
+        return s >= sat && s <= sun; // start dentro del finde
+      })
+      .sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
   }
   if (mode === "week") {
-    return EVENTS.filter(ev => overlaps(ev, TODAY, addDays(TODAY, 6))).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
+    const to = addDays(TODAY, 6);
+    return EVENTS
+      .filter(ev => {
+        const s = parseYMD(ev.start);
+        return s >= TODAY && s <= to; // start dentro de la semana
+      })
+      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   }
   if (mode === "m0" || mode === "m1" || mode === "m2") {
     const offset = Number(mode.slice(1));
@@ -1375,26 +1414,11 @@ function render() {
   const pinnedItems = resolvePinned();
   pinnedWrap.hidden = pinnedItems.length === 0;
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
-  // Keep pinned items also visible in the main contextual list
+  // Keep pinned items also visible in the main contextual list (do not filter them out)
   const rest = items;
-  // Group by day for a simple timeline
-  const groups = {};
-  for (const ev of rest) {
-    const key = ev.start; // all-day events use start date as grouping key
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(ev);
-  }
-  const orderedKeys = Object.keys(groups).sort(); // chronological
-  const parts = [];
-  for (const k of orderedKeys) {
-    const label = formatDay(k);
-    const cards = groups[k]
-      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority)
-      .map(cardHTML)
-      .join("");
-    parts.push(`<div class="day-group"><div class="day-label">${label}</div>${cards}</div>`);
-  }
-  list.innerHTML = parts.join("");
+  // Flat chronological list: sort by start date then priority (desc)
+  rest.sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
+  list.innerHTML = rest.map(cardHTML).join("");
   empty.style.display = (rest.length || pinnedItems.length) ? "none" : "block";
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
