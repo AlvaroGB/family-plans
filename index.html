@@ -87,7 +87,21 @@
   .form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .section-label {
     font-size: .72rem; text-transform: uppercase; letter-spacing: .07em;
-    color: var(--muted); margin: 6px 0 10px; font-weight: 700;
+    color: var(--muted); margin: 22px 0 12px; font-weight: 700;
+  }
+  .section-label:first-of-type { margin-top: 8px; }
+  #pinned-wrap { margin-top: 8px; margin-bottom: 8px; }
+  #list { margin-top: 0; }
+  #custom-inline {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: end;
+    padding: 4px 0 2px;
+  }
+  #custom-inline .di {
+    display: flex; flex-direction: column; gap: 4px; min-width: 9.5rem;
+  }
+  #custom-inline label { margin: 0; }
+  #custom-inline input[type="date"] {
+    min-height: 38px; padding: 6px 10px; font-size: .9rem;
   }
   #list, #pinned { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 8px; }
   .card {
@@ -172,12 +186,21 @@
           </div>
           <button type="button" class="icon-btn" id="settings-toggle">Perfil</button>
         </div>
-        <div class="chips" role="toolbar" aria-label="Atajos de fechas">
+        <div class="chips" role="toolbar" aria-label="Filtros">
           <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
           <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
           <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
           <button type="button" class="chip" data-preset="month" aria-pressed="false">Este mes</button>
-          <button type="button" class="chip" data-preset="custom" aria-pressed="false">Fechas</button>
+          <div id="custom-inline" title="Rango libre">
+            <div class="di">
+              <label for="from">Desde</label>
+              <input type="date" id="from"/>
+            </div>
+            <div class="di">
+              <label for="to">Hasta</label>
+              <input type="date" id="to"/>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -210,20 +233,6 @@
       <div class="form-actions">
         <button type="button" class="btn ghost" id="add-kid">Añadir niño</button>
         <button type="button" class="btn primary" id="save-profile">Guardar perfil</button>
-      </div>
-    </section>
-
-    <section id="custom-panel" class="panel" hidden>
-      <h2>Filtrar por fechas</h2>
-      <div class="range-row">
-        <div>
-          <label for="from">Desde</label>
-          <input type="date" id="from"/>
-        </div>
-        <div>
-          <label for="to">Hasta</label>
-          <input type="date" id="to"/>
-        </div>
       </div>
     </section>
 
@@ -513,7 +522,6 @@ const list = document.getElementById("list");
 const pinnedEl = document.getElementById("pinned");
 const pinnedWrap = document.getElementById("pinned-wrap");
 const empty = document.getElementById("filter-empty");
-const customPanel = document.getElementById("custom-panel");
 const settings = document.getElementById("settings");
 const fromEl = document.getElementById("from");
 const toEl = document.getElementById("to");
@@ -634,16 +642,18 @@ document.querySelectorAll(".chip").forEach(chip => {
   chip.addEventListener("click", () => {
     mode = chip.dataset.preset;
     setChip(mode);
-    customPanel.hidden = mode !== "custom";
-    if (mode === "custom" && !fromEl.value) {
-      fromEl.value = ymd(TODAY);
-      toEl.value = ymd(addDays(TODAY, 14));
-    }
     render();
   });
 });
-fromEl.addEventListener("change", () => { if (mode === "custom") render(); });
-toEl.addEventListener("change", () => { if (mode === "custom") render(); });
+function useCustomRange() {
+  mode = "custom";
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+  if (!fromEl.value) fromEl.value = ymd(TODAY);
+  if (!toEl.value) toEl.value = ymd(addDays(TODAY, 14));
+  render();
+}
+fromEl.addEventListener("change", useCustomRange);
+toEl.addEventListener("change", useCustomRange);
 
 // First visit: open profile if empty
 const needsSetup = !localStorage.getItem(PROFILE_KEY) || (!profile.base && !profile.kids.some(k => k.name || k.birthYear));
@@ -652,6 +662,8 @@ if (needsSetup) {
   fillProfileForm();
 }
 
+fromEl.value = ymd(TODAY);
+toEl.value = ymd(addDays(TODAY, 14));
 document.getElementById("updated").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 render();
