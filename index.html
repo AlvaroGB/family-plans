@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0f766e"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Planes familia · Gijón / Mieres</title>
+<style>
+  :root {
+    --bg: #f4f7f6;
+    --card: #fff;
+    --ink: #12201e;
+    --muted: #5b6b68;
+    --teal: #0f766e;
+    --teal-soft: #ccfbf1;
+    --amber: #b45309;
+    --amber-soft: #ffedd5;
+    --rose: #be123c;
+    --rose-soft: #ffe4e6;
+    --line: #e2e8e6;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(18,32,30,.06), 0 8px 24px rgba(18,32,30,.06);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 12px 14px calc(28px + var(--safe-b)); }
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(244,247,246,.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    margin: -12px -14px 12px; padding: 14px 14px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 { font-size: 1.15rem; margin: 0 0 2px; letter-spacing: -.02em; }
+  .sub { font-size: .8rem; color: var(--muted); margin: 0; }
+  .chips {
+    display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 10px 0 2px; margin: 0 -2px; scrollbar-width: none;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: .85rem;
+    font-weight: 600; cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .panel {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 12px; margin-bottom: 14px; border: 1px solid var(--line);
+  }
+  .panel h2 { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .range-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  label { display: block; font-size: .72rem; color: var(--muted); margin-bottom: 4px; }
+  input[type="date"] {
+    width: 100%; font-size: 1rem; padding: 10px 10px; border-radius: 10px;
+    border: 1px solid var(--line); background: #fafcfb; color: var(--ink);
+  }
+  .card {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    border: 1px solid var(--line); padding: 14px; margin-bottom: 10px;
+  }
+  .card.urgent { border-color: #fdba74; background: linear-gradient(180deg, #fff7ed 0%, #fff 48%); }
+  .card.booked { border-color: #99f6e4; background: linear-gradient(180deg, #f0fdfa 0%, #fff 48%); }
+  .badge {
+    display: inline-block; font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; margin-bottom: 6px;
+  }
+  .badge.urgent { background: var(--amber-soft); color: var(--amber); }
+  .badge.booked { background: var(--teal-soft); color: var(--teal); }
+  .badge.soon { background: #e0f2fe; color: #0369a1; }
+  .badge.aldea { background: #ecfccb; color: #3f6212; }
+  .badge.watch { background: #f1f5f9; color: #475569; }
+  .when { font-size: .82rem; color: var(--muted); margin: 0 0 4px; }
+  .title { font-size: 1.02rem; font-weight: 700; margin: 0 0 6px; letter-spacing: -.01em; }
+  .why { font-size: .9rem; margin: 0 0 10px; color: var(--ink); }
+  .meta { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 42px; padding: 10px 14px; border-radius: 11px; font-size: .9rem;
+    font-weight: 650; text-decoration: none; border: none; cursor: pointer;
+    flex: 1 1 auto;
+  }
+  .btn.primary { background: var(--teal); color: #fff; }
+  .btn.ghost { background: #fff; color: var(--teal); border: 1px solid #99f6e4; }
+  .empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: .95rem; }
+  footer { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 18px; padding: 0 8px; }
+  #filter-empty { display: none; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Planes familia</h1>
+      <p class="sub">Gijón / Mieres · Adrián (4) y Vera (2)</p>
+      <div class="chips" role="toolbar" aria-label="Atajos de fechas">
+        <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
+        <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
+        <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
+        <button type="button" class="chip" data-preset="sep" aria-pressed="false">Sept</button>
+        <button type="button" class="chip" data-preset="custom" aria-pressed="false">Fechas</button>
+      </div>
+    </header>
+
+    <section id="custom-panel" class="panel" hidden>
+      <h2>Filtrar por fechas</h2>
+      <div class="range-row">
+        <div>
+          <label for="from">Desde</label>
+          <input type="date" id="from"/>
+        </div>
+        <div>
+          <label for="to">Hasta</label>
+          <input type="date" id="to"/>
+        </div>
+      </div>
+    </section>
+
+    <div id="list"></div>
+    <p id="filter-empty" class="empty">Nada en ese tramo. Prueba otro o vuelve a Importante.</p>
+    <footer id="updated"></footer>
+  </div>
+<script>
+const _now = new Date();
+const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
+// Events: start/end YYYY-MM-DD; priority higher = more important for family with toddlers
+const EVENTS = [
+  {
+    id: "bromas",
+    title: "Bromas dulces (Rincones)",
+    start: "2026-09-19", end: "2026-09-19",
+    times: "13:00 o 18:00 · todas las edades",
+    why: "Mejor show para los dos. Entradas bajando rápido (18:00 «últimas»).",
+    place: "Laboral, Gijón",
+    priority: 100,
+    tags: ["urgent", "ticket"],
+    link: "https://entradas.turismoasturias.es/es/laboral-ciudad-de-la-cultura/r-y-r-2026-bromas-dulces-como-la-miel/",
+    linkLabel: "Comprar entradas"
+  },
+  {
+    id: "portal-sat",
+    title: "ParkePortal",
+    start: "2026-09-12", end: "2026-09-12",
+    times: "12:00–14:00 y 16:30–19:00 · foam 19:00",
+    why: "Finde libre de familia en Villaviciosa (hinchables/juegos). Ya en el plan del sábado.",
+    place: "El Pelambre, Villaviciosa",
+    priority: 90,
+    tags: ["soon", "festejo"],
+    link: "https://fiestesdelportal.es/",
+    linkLabel: "Programa Portal"
+  },
+  {
+    id: "muja",
+    title: "MUJA — Pequeños chefs",
+    start: "2026-09-13", end: "2026-09-13",
+    times: "13:00–13:45 · reservado",
+    why: "Confirmado: un adulto + Adrián (4). Vera (2) no entra al taller; museo 0–3 gratis.",
+    place: "Colunga",
+    priority: 95,
+    tags: ["booked"],
+    link: "https://docs.google.com/document/d/1ecQTHJqRTijDrXotFdtCn8Yk8X3V9biczSBbx7HrBTo/edit",
+    linkLabel: "Ver en Doc"
+  },
+  {
+    id: "mimesis",
+    title: "Mímesis (Rincones)",
+    start: "2026-09-18", end: "2026-09-18",
+    times: "18:00 · edades 0–3",
+    why: "Encaja con Vera. Adrián se queda fuera de la franja recomendada.",
+    place: "Laboral, Gijón",
+    priority: 55,
+    tags: ["ticket"],
+    link: "https://entradas.turismoasturias.es/es/laboral-ciudad-de-la-cultura/",
+    linkLabel: "Taquilla Rincones"
+  },
+  {
+    id: "portal-week",
+    title: "Fiestas del Portal",
+    start: "2026-09-11", end: "2026-09-16",
+    times: "Varios días · lun 14 dibujo 11:00 + circo 13:00",
+    why: "Semana de fiesta en Villaviciosa. Sábado = ParkePortal.",
+    place: "Villaviciosa",
+    priority: 70,
+    tags: ["festejo", "soon"],
+    link: "https://fiestesdelportal.es/programa/",
+    linkLabel: "Programa"
+  },
+  {
+    id: "coto",
+    title: "San Nicolás · El Coto",
+    start: "2026-09-11", end: "2026-09-13",
+    times: "Vie–dom · hinchables / verbena de barrio",
+    why: "Cerca de casa si queréis un rato corto por la tarde.",
+    place: "Barrio El Coto, Gijón",
+    priority: 50,
+    tags: ["festejo"],
+    link: "https://www.gijon.es/sites/default/files/inline-files/web%2BFest%2BBByPP%2B26.pdf",
+    linkLabel: "Calendario barrios"
+  },
+  {
+    id: "moreda-barrio",
+    title: "Fiestas Populares Moreda",
+    start: "2026-09-11", end: "2026-09-13",
+    times: "Vie–dom · barrio Gijón (no Aller)",
+    why: "Otra opción de barrio el mismo finde.",
+    place: "Barrio Moreda, Gijón",
+    priority: 45,
+    tags: ["festejo"],
+    link: "https://www.gijon.es/sites/default/files/inline-files/web%2BFest%2BBByPP%2B26.pdf",
+    linkLabel: "Calendario barrios"
+  },
+  {
+    id: "natacion",
+    title: "Natación Ayto (El Llano)",
+    start: "2026-09-22", end: "2026-09-28",
+    times: "Ventana de inscripción · hora aún no publicada",
+    why: "2–3 (adulto en agua) y 4–6. Ori reserva el día 22 cuando salga la hora.",
+    place: "Piscina El Llano, Gijón",
+    priority: 80,
+    tags: ["watch", "urgent"],
+    link: "https://drupal.gijon.es/sites/default/files/2026-08/Inscripciones%20y%20renovaciones%20octubre%2026_1.pdf",
+    linkLabel: "Calendario PDM"
+  },
+  {
+    id: "beach",
+    title: "Playa (agua ≥ 21 °C)",
+    start: "2026-09-08", end: "2026-09-11",
+    times: "AEMET San Lorenzo ~21–23 °C estos días",
+    why: "Por encima de vuestra barra de baño. Poniente o El Puntal con peques.",
+    place: "Gijón",
+    priority: 60,
+    tags: ["soon"],
+    link: "https://www.aemet.es/es/eltiempo/prediccion/playas/sanlorenzo-3302403",
+    linkLabel: "AEMET playa"
+  },
+  {
+    id: "aldea-peon",
+    title: "Aldea · Peón",
+    start: "2026-09-08", end: "2026-10-31",
+    times: "Cualquier día · Casa Pepito cerrado miércoles",
+    why: "Mesa + paseo fácil río España. Ideal si no queréis agenda.",
+    place: "Peón (Villaviciosa) · ~30 min",
+    priority: 30,
+    tags: ["aldea"],
+    link: "https://casapepito.es/",
+    linkLabel: "Casa Pepito"
+  },
+  {
+    id: "aldea-arroes",
+    title: "Aldea · Arroes",
+    start: "2026-09-08", end: "2026-10-31",
+    times: "Sampedro cerrado martes",
+    why: "La más cercana desde Gijón (~16 min). Valle de Rioseco, primer tramo.",
+    place: "Arroes · ~16 min",
+    priority: 28,
+    tags: ["aldea"],
+    link: "https://www.turismovillaviciosa.es/turismo/restaurante/sampedro_479_380_2556_0_1_aloj.html",
+    linkLabel: "Sampedro"
+  }
+];
+
+function parseYMD(s) {
+  const [y,m,d] = s.split("-").map(Number);
+  return new Date(y, m-1, d);
+}
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function addDays(d, n) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate()+n);
+  return x;
+}
+function startOfWeekMon(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = (x.getDay()+6)%7; // Mon=0
+  x.setDate(x.getDate()-day);
+  return x;
+}
+function upcomingWeekend(d) {
+  // Next Sat–Sun (if today Sat/Sun, this weekend)
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = (x.getDay()+6)%7;
+  let sat;
+  if (day <= 5) sat = addDays(x, 5-day);
+  else if (day === 5) sat = x;
+  else sat = addDays(x, -1); // Sunday -> Saturday yesterday
+  if (day === 6) sat = x; // Saturday
+  const sun = addDays(sat, 1);
+  return [sat, sun];
+}
+function overlaps(ev, from, to) {
+  const a = parseYMD(ev.start);
+  const b = parseYMD(ev.end);
+  return a <= to && b >= from;
+}
+function badgeFor(ev) {
+  if (ev.tags.includes("booked")) return ["booked", "Reservado"];
+  if (ev.tags.includes("urgent") || ev.priority >= 90) return ["urgent", "Urgente"];
+  if (ev.tags.includes("aldea")) return ["aldea", "Aldea"];
+  if (ev.tags.includes("watch")) return ["watch", "Vigilando"];
+  return ["soon", "Próximo"];
+}
+function cardHTML(ev) {
+  const [bClass, bLabel] = badgeFor(ev);
+  const urgentClass = (ev.tags.includes("urgent") || ev.priority >= 90) && !ev.tags.includes("booked") ? " urgent" : "";
+  const bookedClass = ev.tags.includes("booked") ? " booked" : "";
+  const when = ev.start === ev.end
+    ? formatDay(ev.start) + (ev.times ? " · " + ev.times : "")
+    : formatDay(ev.start) + " – " + formatDay(ev.end) + (ev.times ? " · " + ev.times : "");
+  return `<article class="card${urgentClass}${bookedClass}">
+    <span class="badge ${bClass}">${bLabel}</span>
+    <p class="when">${when}</p>
+    <h3 class="title">${ev.title}</h3>
+    <p class="why">${ev.why}</p>
+    <p class="meta">${ev.place || ""}</p>
+    <div class="actions">
+      ${ev.link ? `<a class="btn primary" href="${ev.link}" target="_blank" rel="noopener">${ev.linkLabel || "Abrir"}</a>` : ""}
+    </div>
+  </article>`;
+}
+function formatDay(s) {
+  const d = parseYMD(s);
+  return d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+}
+
+let mode = "upcoming";
+const list = document.getElementById("list");
+const empty = document.getElementById("filter-empty");
+const customPanel = document.getElementById("custom-panel");
+const fromEl = document.getElementById("from");
+const toEl = document.getElementById("to");
+
+function setChip(preset) {
+  document.querySelectorAll(".chip").forEach(c => {
+    c.setAttribute("aria-pressed", c.dataset.preset === preset ? "true" : "false");
+  });
+}
+function render() {
+  let from, to, items;
+  if (mode === "upcoming") {
+    // Family lens: upcoming + high priority / booked / tickets / this+next week festejos
+    const horizon = addDays(TODAY, 21);
+    items = EVENTS.filter(ev => overlaps(ev, TODAY, horizon))
+      .filter(ev => ev.priority >= 45 || ev.tags.includes("booked") || ev.tags.includes("urgent") || ev.tags.includes("ticket"))
+      .sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+  } else if (mode === "weekend") {
+    const [sat, sun] = upcomingWeekend(TODAY);
+    from = sat; to = sun;
+    items = EVENTS.filter(ev => overlaps(ev, from, to)).sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+  } else if (mode === "week") {
+    from = TODAY; to = addDays(TODAY, 6);
+    items = EVENTS.filter(ev => overlaps(ev, from, to)).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
+  } else if (mode === "sep") {
+    from = new Date(2026, 8, 1); to = new Date(2026, 8, 30);
+    items = EVENTS.filter(ev => overlaps(ev, from, to)).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
+  } else {
+    const f = fromEl.value ? parseYMD(fromEl.value) : TODAY;
+    const t = toEl.value ? parseYMD(toEl.value) : addDays(TODAY, 30);
+    items = EVENTS.filter(ev => overlaps(ev, f, t)).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
+  }
+  list.innerHTML = items.map(cardHTML).join("");
+  empty.style.display = items.length ? "none" : "block";
+}
+
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    mode = chip.dataset.preset;
+    setChip(mode);
+    customPanel.hidden = mode !== "custom";
+    if (mode === "custom" && !fromEl.value) {
+      fromEl.value = ymd(TODAY);
+      toEl.value = ymd(addDays(TODAY, 14));
+    }
+    render();
+  });
+});
+fromEl.addEventListener("change", () => { if (mode === "custom") render(); });
+toEl.addEventListener("change", () => { if (mode === "custom") render(); });
+
+document.getElementById("updated").textContent =
+  "Actualizado 8 sep 2026 · Lo más importante primero · Filtro abajo en chips";
+render();
+</script>
+</body>
+</html>
