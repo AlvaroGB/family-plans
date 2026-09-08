@@ -188,6 +188,14 @@
   #filter-empty { display: none; }
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
+  /* Simple chronological grouping */
+  .day-group { display: grid; gap: 12px; position: relative; }
+  .day-label {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin: 8px 2px 2px; font-weight: 700;
+    background: rgba(238,243,241,.85); border: 1px solid var(--line);
+    padding: 3px 8px; border-radius: 999px; width: max-content;
+  }
 
   /* Tighter, more compact header + chips on small phones */
   @media (max-width: 480px) {
@@ -279,6 +287,9 @@
           <label for="pf-base">Base / zona</label>
           <input id="pf-base" type="text" placeholder="Ciudad o zona"/>
         </div>
+      </div>
+      <div class="form-actions" style="margin-top:8px">
+        <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
       </div>
       <div class="form-grid" style="margin-top:10px">
         <div>
@@ -397,6 +408,14 @@ const HOME_CITIES = {
   "colunga": { lat: 43.477, lng: -5.274 },
   "peon": { lat: 43.459, lng: -5.58 },
   "arroes": { lat: 43.477, lng: -5.596 }
+};
+const DISPLAY_HOME_NAMES = {
+  gijon: "Gijón",
+  mieres: "Mieres",
+  villaviciosa: "Villaviciosa",
+  colunga: "Colunga",
+  peon: "Peón",
+  arroes: "Arroes"
 };
 const PLACES = {
   "laboral": { lat: 43.532, lng: -5.628 },
@@ -942,7 +961,8 @@ function filtered() {
     const horizon = addDays(TODAY, 21);
     return EVENTS.filter(ev => overlaps(ev, TODAY, horizon))
       .filter(ev => ev.priority >= 45 || ev.tags.includes("booked") || ev.tags.includes("urgent") || ev.tags.includes("ticket"))
-      .sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+      // Primary order: chronological by start date; ties by priority desc
+      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   }
   if (mode === "weekend") {
     const [sat, sun] = upcomingWeekend(TODAY);
@@ -1045,7 +1065,24 @@ function render() {
   pinnedWrap.hidden = pinnedItems.length === 0;
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
   const rest = items.filter(ev => !pins.has(ev.id));
-  list.innerHTML = rest.map(cardHTML).join("");
+  // Group by day for a simple timeline
+  const groups = {};
+  for (const ev of rest) {
+    const key = ev.start; // all-day events use start date as grouping key
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(ev);
+  }
+  const orderedKeys = Object.keys(groups).sort(); // chronological
+  const parts = [];
+  for (const k of orderedKeys) {
+    const label = formatDay(k);
+    const cards = groups[k]
+      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority)
+      .map(cardHTML)
+      .join("");
+    parts.push(`<div class="day-group"><div class="day-label">${label}</div>${cards}</div>`);
+  }
+  list.innerHTML = parts.join("");
   empty.style.display = (rest.length || pinnedItems.length) ? "none" : "block";
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
@@ -1101,6 +1138,39 @@ toEl.value = ymd(addDays(TODAY, 14));
 document.getElementById("updated").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 render();
+
+// Geolocation button: set base to nearest known city
+const useGeoBtn = document.getElementById("use-geo");
+if (useGeoBtn && "geolocation" in navigator) {
+  useGeoBtn.addEventListener("click", () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const here = { lat: latitude, lng: longitude };
+        let bestKey = null;
+        let bestD = Infinity;
+        for (const [k, coords] of Object.entries(HOME_CITIES)) {
+          const d = haversineKm(here, coords);
+          if (d < bestD) { bestD = d; bestKey = k; }
+        }
+        if (bestKey) {
+          profile.base = DISPLAY_HOME_NAMES[bestKey] || bestKey;
+          const baseEl = document.getElementById("pf-base");
+          if (baseEl) baseEl.value = profile.base;
+          saveProfile(profile);
+          render();
+        }
+      },
+      () => {
+        alert("No se pudo obtener la ubicación.");
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  });
+} else if (useGeoBtn) {
+  useGeoBtn.disabled = true;
+  useGeoBtn.textContent = "Ubicación no disponible";
+}
 </script>
 </body>
 </html>
