@@ -1011,6 +1011,14 @@ function bindPins(root) {
         live.textContent = (wasPinned ? "Quitado de Fijados: " : "Añadido a Fijados: ") + tpl(ev.title);
       }
       render();
+      // After pinning, nudge the Fijados section into view so the user sees it
+      if (!wasPinned) {
+        const wrap = document.getElementById("pinned-wrap");
+        if (wrap) {
+          wrap.hidden = false;
+          try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
+        }
+      }
     });
   });
 }
@@ -1060,11 +1068,36 @@ function render() {
   fillHeader();
   const timeItems = filtered();
   const items = applyDistance(timeItems);
-  const pinnedItems = EVENTS.filter(ev => pins.has(ev.id))
-    .sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+  // Resolve pinned items:
+  // - Direct matches by event id
+  // - Evergreen pins encoded as "<baseId>@YYYY-MM-DD" or "<baseId>@YYYY-MM-DD..YYYY-MM-DD"
+  function parseEvergreenPin(key) {
+    const m = String(key).match(/^(.+?)@(\d{4}-\d{2}-\d{2})(?:\.\.(\d{4}-\d{2}-\d{2}))?$/);
+    return m ? { baseId: m[1], start: m[2], end: m[3] || m[2] } : null;
+  }
+  function resolvePinned() {
+    const out = [];
+    pins.forEach(key => {
+      const direct = EVENTS.find(ev => ev.id === key);
+      if (direct) {
+        out.push(direct);
+        return;
+      }
+      const eg = parseEvergreenPin(key);
+      if (eg) {
+        const base = EVENTS.find(ev => ev.id === eg.baseId);
+        if (base) {
+          out.push({ ...base, id: String(key), start: eg.start, end: eg.end });
+        }
+      }
+    });
+    return out.sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
+  }
+  const pinnedItems = resolvePinned();
   pinnedWrap.hidden = pinnedItems.length === 0;
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
-  const rest = items.filter(ev => !pins.has(ev.id));
+  // Keep pinned items also visible in the main contextual list
+  const rest = items;
   // Group by day for a simple timeline
   const groups = {};
   for (const ev of rest) {
