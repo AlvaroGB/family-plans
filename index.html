@@ -1070,6 +1070,15 @@ function parseEvergreenPinId(id) {
   const m = /^evergreen:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(id);
   return m ? { id: m[1], date: m[2] } : null;
 }
+function getEvergreenPinnedDates(egId) {
+  const dates = [];
+  pins.forEach(key => {
+    const parsed = parseEvergreenPinId(String(key));
+    if (parsed && parsed.id === egId) dates.push(parsed.date);
+  });
+  dates.sort();
+  return dates;
+}
 function isEvergreenPinnedForDate(egId, dateStr) {
   return pins.has(evergreenPinId(egId, dateStr));
 }
@@ -1174,15 +1183,21 @@ function renderEvergreen() {
     const egId = it.id || `ever-${idx}`;
     const [sat] = upcomingWeekend(TODAY);
     const defaultDate = ymd(sat);
-    const pinnedNow = isEvergreenPinnedForDate(egId, defaultDate);
-    const btnLabel = pinnedNow ? "Quitar" : "Fijar";
+    const pinnedDates = getEvergreenPinnedDates(egId);
+    const pinnedNow = pinnedDates.length > 0;
+    let btnLabel = "Fijar";
+    if (pinnedDates.length === 1) {
+      btnLabel = `Quitar · ${pinnedDates[0]}`;
+    } else if (pinnedDates.length > 1) {
+      btnLabel = `Fijado · ${pinnedDates.length} fechas`;
+    }
     return `<article class="card type-${type}">
       <div class="badges">
         <span class="badge ${bClass}">${bLabel}</span>
       </div>
       <h3 class="title">${t}</h3>
       <div class="eg-row">
-        <button type="button" class="btn primary" data-evergreen="${egId}" data-default="${defaultDate}">${btnLabel}</button>
+        <button type="button" class="btn primary" data-evergreen="${egId}" data-default="${defaultDate}" aria-pressed="${pinnedNow ? "true" : "false"}">${btnLabel}</button>
         ${link}
       </div>
     </article>`;
@@ -1193,17 +1208,25 @@ function renderEvergreen() {
     btn.addEventListener("click", () => {
       const egId = btn.getAttribute("data-evergreen");
       const def = btn.getAttribute("data-default") || ymd(TODAY);
-      const picked = window.prompt("Elige fecha (YYYY-MM-DD)", def);
+      const pinnedDates = getEvergreenPinnedDates(egId);
+      if (pinnedDates.length === 1) {
+        // Unpin the single pinned date without prompt
+        const only = pinnedDates[0];
+        const pid = evergreenPinId(egId, only);
+        pins.delete(pid);
+        savePins(pins);
+        render();
+        return;
+      }
+      const init = pinnedDates[0] || def;
+      const picked = window.prompt("Elige fecha (YYYY-MM-DD)", init);
       if (!picked) return; // cancelado
       if (!/^\d{4}-\d{2}-\d{2}$/.test(picked)) { alert("Fecha inválida"); return; }
       const pid = evergreenPinId(egId, picked);
       if (pins.has(pid)) pins.delete(pid);
       else pins.add(pid);
       savePins(pins);
-      // Update label immediately
-      btn.textContent = pins.has(pid) ? "Quitar" : "Fijar";
-      // Optionally update pinned section if visible (does not include evergreen pins)
-      pinnedWrap.hidden = (document.getElementById("pinned").children.length === 0);
+      render();
     });
   });
 }
