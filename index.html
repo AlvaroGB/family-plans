@@ -294,7 +294,7 @@ const PROFILE_KEY = "family-plans-profile-v1";
 
 const DEFAULT_PROFILE = {
   title: "Planes familia",
-  base: "",
+  base: "Gijón",
   adults: "",
   radiusMin: 60,
   calendarOnPin: false,
@@ -362,6 +362,26 @@ function fillHeader() {
 }
 
 /* Events use templates with {{kid0}}, {{kid1}}, {{base}} — no hardcoded family names */
+/* Basic place lookup (approx coords) for distance filter */
+function norm(s){ return (s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+const HOME_CITIES = {
+  "gijon": { lat: 43.542, lng: -5.662 },
+  "mieres": { lat: 43.251, lng: -5.777 },
+  "villaviciosa": { lat: 43.481, lng: -5.435 },
+  "colunga": { lat: 43.477, lng: -5.274 },
+  "peon": { lat: 43.459, lng: -5.58 },
+  "arroes": { lat: 43.477, lng: -5.596 }
+};
+const PLACES = {
+  "laboral": { lat: 43.532, lng: -5.628 },
+  "villaviciosa": HOME_CITIES["villaviciosa"],
+  "colunga": HOME_CITIES["colunga"],
+  "el-coto": { lat: 43.536, lng: -5.654 },
+  "moreda": { lat: 43.543, lng: -5.677 },
+  "el-llano": { lat: 43.537, lng: -5.64 },
+  "peon": HOME_CITIES["peon"],
+  "arroes": HOME_CITIES["arroes"]
+};
 const EVENTS = [
   {
     id: "bromas",
@@ -370,6 +390,7 @@ const EVENTS = [
     times: "13:00 o 18:00 · todas las edades",
     why: "Teatro dulce y cercano para distintas edades: bien para {{kid0}} y {{kid1}}. Entradas volando (18:00 casi últimas).",
     place: "Laboral · cerca de {{base}}",
+    locKey: "laboral",
     priority: 100, type: "ticket", tags: ["urgent", "ticket"],
     link: "https://entradas.turismoasturias.es/es/laboral-ciudad-de-la-cultura/r-y-r-2026-bromas-dulces-como-la-miel/",
     linkLabel: "Comprar entradas"
@@ -381,6 +402,7 @@ const EVENTS = [
     times: "12:00–14:00 y 16:30–19:00 · foam 19:00",
     why: "Hinchables, talleres y juegos al aire libre; fácil logística con carrito. Buen sábado en familia.",
     place: "El Pelambre, Villaviciosa",
+    locKey: "villaviciosa",
     priority: 90, type: "festejo", tags: ["soon", "festejo"],
     link: "https://fiestesdelportal.es/",
     linkLabel: "Programa Portal"
@@ -392,6 +414,7 @@ const EVENTS = [
     times: "13:00–13:45 · reservado",
     why: "Taller práctico 4–11 para {{kid0}}. Si {{kid1}} es menor, el taller le queda grande (museo 0–3 gratis).",
     place: "Colunga",
+    locKey: "colunga",
     priority: 95, type: "booked", tags: ["booked"],
     link: "https://www.museojurasicoasturias.com/",
     linkLabel: "MUJA"
@@ -403,6 +426,7 @@ const EVENTS = [
     times: "18:00 · edades 0–3",
     why: "Espectáculo sensorial 0–3 perfecto para {{kid1}}; {{kid0}} quizá mayor para la franja.",
     place: "Laboral",
+    locKey: "laboral",
     priority: 55, type: "ticket", tags: ["ticket"],
     link: "https://entradas.turismoasturias.es/es/laboral-ciudad-de-la-cultura/",
     linkLabel: "Taquilla Rincones"
@@ -414,6 +438,7 @@ const EVENTS = [
     times: "Varios días · lun 14 dibujo 11:00 + circo 13:00",
     why: "Semana grande de Villaviciosa; sábado con ParkePortal.",
     place: "Villaviciosa",
+    locKey: "villaviciosa",
     priority: 70, type: "festejo", tags: ["festejo", "soon"],
     link: "https://fiestesdelportal.es/programa/",
     linkLabel: "Programa"
@@ -425,6 +450,7 @@ const EVENTS = [
     times: "Vie–dom · hinchables / verbena de barrio",
     why: "Plan corto de tarde con hinchables y verbena de barrio cerca.",
     place: "Barrio El Coto, Gijón",
+    locKey: "el-coto",
     priority: 50, type: "festejo", tags: ["festejo"],
     link: "https://www.gijon.es/sites/default/files/inline-files/web%2BFest%2BBByPP%2B26.pdf",
     linkLabel: "Calendario barrios"
@@ -436,6 +462,7 @@ const EVENTS = [
     times: "Vie–dom · barrio Gijón (no Aller)",
     why: "Otra verbena de barrio el mismo finde en Gijón (no Aller).",
     place: "Barrio Moreda, Gijón",
+    locKey: "moreda",
     priority: 45, type: "festejo", tags: ["festejo"],
     link: "https://www.gijon.es/sites/default/files/inline-files/web%2BFest%2BBByPP%2B26.pdf",
     linkLabel: "Calendario barrios"
@@ -447,6 +474,7 @@ const EVENTS = [
     times: "Ventana de inscripción · hora aún no publicada",
     why: "Inscripción a cursos infantiles; revisar hora y grupo cuando publiquen.",
     place: "Piscina El Llano, Gijón",
+    locKey: "el-llano",
     priority: 80, type: "watch", tags: ["watch", "urgent"],
     link: "https://drupal.gijon.es/sites/default/files/2026-08/Inscripciones%20y%20renovaciones%20octubre%2026_1.pdf",
     linkLabel: "Calendario PDM"
@@ -458,6 +486,7 @@ const EVENTS = [
     times: "AEMET San Lorenzo ~21–23 °C estos días",
     why: "Agua templada, ideal para peques; bandeja tranquila si el mar acompaña.",
     place: "{{base}}",
+    useBase: true,
     priority: 60, type: "beach", tags: ["soon"],
     link: "https://www.aemet.es/es/eltiempo/prediccion/playas/sanlorenzo-3302403",
     linkLabel: "AEMET playa"
@@ -469,6 +498,7 @@ const EVENTS = [
     times: "Cualquier día · Casa Pepito cerrado miércoles",
     why: "Mesa amplia + paseo fácil; ideal cuando no apetece agenda cerrada.",
     place: "Peón (Villaviciosa)",
+    locKey: "peon",
     priority: 30, type: "aldea", tags: ["aldea"],
     link: "https://casapepito.es/",
     linkLabel: "Casa Pepito"
@@ -480,6 +510,7 @@ const EVENTS = [
     times: "Sampedro cerrado martes",
     why: "Aldea cercana con restaurante y paseo corto; buena para sobremesa.",
     place: "Arroes",
+    locKey: "arroes",
     priority: 28, type: "aldea", tags: ["aldea"],
     link: "https://www.turismovillaviciosa.es/turismo/restaurante/sampedro_479_380_2556_0_1_aloj.html",
     linkLabel: "Sampedro"
@@ -519,6 +550,28 @@ function overlaps(ev, from, to) {
 }
 function formatDay(s) {
   return parseYMD(s).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+}
+/* Distance helpers */
+function haversineKm(a, b) {
+  const R = 6371; // km
+  const dLat = (b.lat - a.lat) * Math.PI/180;
+  const dLng = (b.lng - a.lng) * Math.PI/180;
+  const lat1 = a.lat * Math.PI/180;
+  const lat2 = b.lat * Math.PI/180;
+  const sinDLat = Math.sin(dLat/2);
+  const sinDLng = Math.sin(dLng/2);
+  const c = 2 * Math.asin(Math.sqrt(sinDLat*sinDLat + Math.cos(lat1)*Math.cos(lat2)*sinDLng*sinDLng));
+  return R * c;
+}
+function getHomeCoords() {
+  const key = norm(profile.base);
+  return HOME_CITIES[key] || null;
+}
+function getEventCoords(ev, home) {
+  if (ev.useBase && home) return home;
+  if (ev.loc) return ev.loc;
+  if (ev.locKey && PLACES[ev.locKey]) return PLACES[ev.locKey];
+  return null;
 }
 
 function pad2(n){ return String(n).padStart(2,"0"); }
@@ -673,6 +726,17 @@ function filtered() {
   const t = toEl.value ? parseYMD(toEl.value) : addDays(TODAY, 30);
   return EVENTS.filter(ev => overlaps(ev, f, t)).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
 }
+function applyDistance(items) {
+  const home = getHomeCoords();
+  if (!home) return items; // if unknown base, don't filter by distance
+  const limitKm = Math.max(1, Number(profile.radiusMin) || 60); // approx: 1 km ≈ 1 min (60 km/h)
+  return items.filter(ev => {
+    const ec = getEventCoords(ev, home);
+    if (!ec) return true; // keep if unknown location
+    const d = haversineKm(home, ec);
+    return d <= limitKm;
+  });
+}
 function bindPins(root) {
   root.querySelectorAll("[data-pin]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -739,7 +803,8 @@ function fillProfileForm() {
 }
 function render() {
   fillHeader();
-  const items = filtered();
+  const timeItems = filtered();
+  const items = applyDistance(timeItems);
   const pinnedItems = EVENTS.filter(ev => pins.has(ev.id))
     .sort((a,b) => b.priority - a.priority || a.start.localeCompare(b.start));
   pinnedWrap.hidden = pinnedItems.length === 0;
