@@ -120,6 +120,10 @@
   #custom-inline input[type="date"] {
     min-height: 38px; padding: 6px 10px; font-size: .9rem;
   }
+  /* Evergreen mini controls */
+  .eg-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .eg-date { min-height: 32px; padding: 6px 8px; font-size: .9rem; }
+  .eg-row .btn { flex: 0 0 auto; }
   /* Heatmap strip */
   .heatmap {
     display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
@@ -908,6 +912,16 @@ function typeBadge(type) {
   };
   return map[type] || ["soon", "Próximo"];
 }
+function evergreenPinId(egId, dateStr) {
+  return `evergreen:${egId}@${dateStr}`;
+}
+function parseEvergreenPinId(id) {
+  const m = /^evergreen:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(id);
+  return m ? { id: m[1], date: m[2] } : null;
+}
+function isEvergreenPinnedForDate(egId, dateStr) {
+  return pins.has(evergreenPinId(egId, dateStr));
+}
 function normalizeLinkLabel(label) {
   if (!label) return "Abrir";
   const s = String(label).trim();
@@ -1000,12 +1014,21 @@ function renderHeatmap() {
   const start = TODAY;
   const pinnedIds = [...pins];
   const pinnedEvents = EVENTS.filter(ev => pinnedIds.includes(ev.id));
+  // Add counts from event pins (by overlap)
   for (let i = 0; i < days; i++) {
     const d = addDays(start, i);
     const to = d;
     for (const ev of pinnedEvents) {
       if (overlaps(ev, d, to)) counts[i] += 1;
     }
+  }
+  // Add counts from evergreen pins (exact date matches)
+  for (const pid of pinnedIds) {
+    const eg = parseEvergreenPinId(pid);
+    if (!eg) continue;
+    const egDate = parseYMD(eg.date);
+    const idx = Math.round((egDate - start) / (24*60*60*1000));
+    if (idx >= 0 && idx < days) counts[idx] += 1;
   }
   const cells = [];
   for (let i = 0; i < days; i++) {
@@ -1039,22 +1062,51 @@ function renderEvergreen() {
     const t = it.title || `Elemento ${idx+1}`;
     const type = it.type || "soon";
     const link = it.link ? `<a class="btn ghost" href="${it.link}" target="_blank" rel="noopener">${normalizeLinkLabel(it.linkLabel || "Abrir")}</a>` : "";
+    const egId = it.id || `ever-${idx}`;
+    const [sat] = upcomingWeekend(TODAY);
+    const defaultDate = ymd(sat);
+    const pinnedNow = isEvergreenPinnedForDate(egId, defaultDate);
+    const btnLabel = pinnedNow ? "Quitar" : "Fijar";
     return `<article class="card type-${type}">
       <h3 class="title">${t}</h3>
-      <div class="actions">
-        <button type="button" class="btn primary" data-evergreen="${it.id || `ever-${idx}`}">Fijar</button>
+      <div class="eg-row">
+        <input type="date" class="eg-date" data-eg-date="${egId}" value="${defaultDate}"/>
+        <button type="button" class="btn primary" data-evergreen="${egId}" data-default="${defaultDate}">${btnLabel}</button>
         ${link}
       </div>
     </article>`;
   }).join("");
   evergreenEl.innerHTML = html;
+  // Click: toggle pin for selected date
   evergreenEl.querySelectorAll("[data-evergreen]").forEach(btn => {
     btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-evergreen");
-      const date = prompt("Elige fecha (AAAA-MM-DD):", ymd(TODAY));
-      if (date && /^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
-        alert("Fijado «" + id + "» para " + date + ". (Conectar a inventario/pins)");
+      const egId = btn.getAttribute("data-evergreen");
+      const input = evergreenEl.querySelector(`[data-eg-date="${egId}"]`);
+      const date = (input && input.value) ? input.value : (btn.getAttribute("data-default") || ymd(TODAY));
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return;
+      const pid = evergreenPinId(egId, date);
+      if (pins.has(pid)) {
+        pins.delete(pid);
+      } else {
+        pins.add(pid);
       }
+      savePins(pins);
+      // Update label immediately
+      btn.textContent = pins.has(pid) ? "Quitar" : "Fijar";
+      renderHeatmap();
+      // Optionally update pinned section if visible (does not include evergreen pins)
+      pinnedWrap.hidden = (document.getElementById("pinned").children.length === 0);
+    });
+  });
+  // Change: update button label when date changes
+  evergreenEl.querySelectorAll("[data-eg-date]").forEach(inp => {
+    inp.addEventListener("change", () => {
+      const egId = inp.getAttribute("data-eg-date");
+      const date = inp.value || inp.getAttribute("value");
+      const btn = evergreenEl.querySelector(`[data-evergreen="${egId}"]`);
+      if (!btn) return;
+      const pid = evergreenPinId(egId, date);
+      btn.textContent = pins.has(pid) ? "Quitar" : "Fijar";
     });
   });
 }
