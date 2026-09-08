@@ -1085,9 +1085,33 @@ function render() {
       }
       const eg = parseEvergreenPin(key);
       if (eg) {
-        const base = EVENTS.find(ev => ev.id === eg.baseId);
-        if (base) {
-          out.push({ ...base, id: String(key), start: eg.start, end: eg.end });
+        // Try to resolve from dated EVENTS first; otherwise from window.EVERGREEN (evergreen templates)
+        const baseEvent = EVENTS.find(ev => ev.id === eg.baseId);
+        if (baseEvent) {
+          out.push({ ...baseEvent, id: String(key), start: eg.start, end: eg.end });
+        } else {
+          const EVER = (typeof window !== "undefined" && window.EVERGREEN) || null;
+          let egBase = null;
+          if (EVER) {
+            if (Array.isArray(EVER)) egBase = EVER.find(e => e && e.id === eg.baseId) || null;
+            else if (typeof EVER === "object") egBase = EVER[eg.baseId] || null;
+          }
+          if (egBase) {
+            const built = {
+              id: String(key),
+              title: egBase.title || egBase.name || eg.baseId,
+              why: egBase.why || egBase.desc || "",
+              place: egBase.place || "",
+              type: egBase.type || "watch",
+              tags: Array.isArray(egBase.tags) ? egBase.tags.slice() : [],
+              priority: typeof egBase.priority === "number" ? egBase.priority : 50,
+              start: eg.start,
+              end: eg.end,
+              link: egBase.link || "",
+              linkLabel: egBase.linkLabel || (egBase.link ? "Abrir" : "")
+            };
+            out.push(built);
+          }
         }
       }
     });
