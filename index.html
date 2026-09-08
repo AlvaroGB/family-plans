@@ -4,8 +4,27 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#0f766e"/>
+<meta name="color-scheme" content="light dark"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>Planes familia</title>
+<script>
+  // Early theme boot: prefer saved preference; otherwise follow system
+  (function () {
+    try {
+      var KEY = "family-plans-theme-v1";
+      var stored = localStorage.getItem(KEY);
+      var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      var theme = (stored === "light" || stored === "dark") ? stored : (prefersDark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", theme === "dark" ? "#0b1312" : "#0f766e");
+    } catch (_) {
+      // If localStorage is blocked, fall back to system
+      var prefersDark2 = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute("data-theme", prefersDark2 ? "dark" : "light");
+    }
+  })();
+</script>
 <style>
   :root {
     --bg: #eef3f1;
@@ -23,6 +42,20 @@
     --safe-t: env(safe-area-inset-top, 0px);
     --max: 560px;
   }
+  /* Dark theme tokens */
+  html[data-theme="dark"] {
+    --bg: #0e1514;
+    --card: #101a19;
+    --ink: #e6f0ee;
+    --muted: #a3b2ae;
+    --teal: #0f766e; /* brand stays */
+    --teal-soft: #134e4a;
+    --amber: #d97706;
+    --amber-soft: #3a2a12;
+    --line: #263531;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.38);
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
@@ -36,6 +69,12 @@
     -webkit-tap-highlight-color: transparent;
     min-height: 100vh;
   }
+  html[data-theme="dark"] body {
+    background:
+      radial-gradient(1100px 460px at 10% -10%, rgba(14, 67, 62, 0.40) 0%, transparent 55%),
+      radial-gradient(860px 360px at 100% 0%, rgba(120, 65, 0, 0.22) 0%, transparent 50%),
+      var(--bg);
+  }
   .wrap { max-width: var(--max); margin: 0 auto; padding: 12px 14px calc(28px + var(--safe-b)); }
   header {
     position: sticky; top: 0; z-index: 20;
@@ -45,14 +84,24 @@
     margin: -12px -14px 12px; padding: calc(10px + var(--safe-t)) 12px 6px;
     border-bottom: 1px solid var(--line);
   }
+  html[data-theme="dark"] header {
+    background: rgba(12,18,17,.85);
+    border-bottom-color: var(--line);
+  }
   .header-inner { max-width: var(--max); margin: 0 auto; }
   .title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .hdr-btns { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 1.2rem; margin: 0 0 2px; letter-spacing: -.02em; }
   .sub { font-size: .82rem; color: var(--muted); margin: 0; }
   .icon-btn {
     border: 1px solid var(--line); background: #fff; border-radius: 999px;
     min-height: 40px; padding: 8px 12px; font-size: .82rem; font-weight: 700;
     color: var(--teal); cursor: pointer; white-space: nowrap;
+  }
+  html[data-theme="dark"] .icon-btn {
+    background: var(--card);
+    border-color: var(--line);
+    color: var(--teal);
   }
   .chips {
     display: flex; gap: 10px 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -85,6 +134,14 @@
   input[type="date"], input[type="text"], input[type="number"], select {
     width: 100%; font-size: 1rem; padding: 10px; border-radius: 10px;
     border: 1px solid var(--line); background: #fafcfb; color: var(--ink);
+  }
+  html[data-theme="dark"] input[type="date"],
+  html[data-theme="dark"] input[type="text"],
+  html[data-theme="dark"] input[type="number"],
+  html[data-theme="dark"] select {
+    background: #0f1917;
+    color: var(--ink);
+    border-color: var(--line);
   }
   .kid-row {
     display: grid; grid-template-columns: 1.2fr .8fr auto; gap: 8px; align-items: end;
@@ -130,6 +187,8 @@
     box-shadow: var(--shadow); border: 1px solid var(--line); padding: 16px; overflow: hidden;
     transition: box-shadow .15s ease, transform .15s ease;
   }
+  /* In dark mode, neutralize type-specific bright gradients */
+  html[data-theme="dark"] .card { background: var(--card) !important; border-color: var(--line) !important; }
   .card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--accent, #94a3b8); }
   .card.type-ticket { --accent: #ea580c; background: linear-gradient(145deg, #fff7ed 0%, #fff 42%); border-color: #fed7aa; }
   .card.type-booked { --accent: #0f766e; background: linear-gradient(145deg, #ecfdf5 0%, #fff 42%); border-color: #99f6e4; }
@@ -181,6 +240,11 @@
     font-weight: 700; color: var(--muted); cursor: pointer;
     display: inline-flex; align-items: center; gap: 6px;
   }
+  html[data-theme="dark"] .pin-btn {
+    background: rgba(255,255,255,.06);
+    color: var(--muted);
+    border-color: var(--line);
+  }
   .pin-btn[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
   .pin-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--teal-soft); }
   .pin-btn::before { content: "📌"; opacity: .9; }
@@ -197,6 +261,11 @@
   }
   .btn.primary { background: var(--teal); color: #fff; }
   .btn.ghost { background: #fff; color: var(--teal); border: 1px solid #99f6e4; }
+  html[data-theme="dark"] .btn.ghost {
+    background: var(--card);
+    color: var(--teal);
+    border: 1px solid #22d3ee55;
+  }
   .empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: .95rem; }
   footer { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 22px; padding: 0 8px; }
   #filter-empty { display: none; }
@@ -260,7 +329,10 @@
             <h1 id="app-title">Planes familia</h1>
             <p class="sub" id="app-sub">Configura tu familia</p>
           </div>
-          <button type="button" class="icon-btn" id="settings-toggle">Perfil</button>
+          <div class="hdr-btns">
+            <button type="button" class="icon-btn" id="theme-toggle" aria-label="Activar modo oscuro" title="Tema">Oscuro</button>
+            <button type="button" class="icon-btn" id="settings-toggle">Perfil</button>
+          </div>
         </div>
         <div class="chips" role="toolbar" aria-label="Filtros">
           <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
@@ -340,6 +412,7 @@ const _now = new Date();
 const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
 const PIN_KEY = "family-plans-pinned-v1";
 const PROFILE_KEY = "family-plans-profile-v1";
+const THEME_KEY = "family-plans-theme-v1";
 
 const DEFAULT_PROFILE = {
   title: "Planes familia",
@@ -1326,6 +1399,38 @@ document.getElementById("settings-toggle").addEventListener("click", () => {
   settings.hidden = !open;
   if (open) fillProfileForm();
 });
+
+// Theme toggle (light/dark) with persistence
+(function initThemeToggle(){
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  function currentTheme() {
+    const t = document.documentElement.getAttribute("data-theme");
+    return (t === "dark" || t === "light") ? t : "light";
+  }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch {}
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "dark" ? "#0b1312" : "#0f766e");
+  }
+  function syncButton() {
+    const t = currentTheme();
+    if (t === "dark") {
+      btn.textContent = "Claro";
+      btn.setAttribute("aria-label", "Activar modo claro");
+    } else {
+      btn.textContent = "Oscuro";
+      btn.setAttribute("aria-label", "Activar modo oscuro");
+    }
+  }
+  btn.addEventListener("click", () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    applyTheme(next);
+    syncButton();
+  });
+  syncButton();
+})();
 
 // Normalize evergreen items' types when present
 // Ensures each EVERGREEN card has a real TYPE (not only "soon"/"Próximo")
