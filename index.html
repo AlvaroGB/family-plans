@@ -227,14 +227,7 @@
   #filter-empty { display: none; }
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
-  /* Simple chronological grouping */
-  .day-group { display: grid; gap: 12px; position: relative; }
-  .day-label {
-    font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--muted); margin: 8px 2px 2px; font-weight: 700;
-    background: rgba(238,243,241,.85); border: 1px solid var(--line);
-    padding: 3px 8px; border-radius: 999px; width: max-content;
-  }
+  /* (Removed timeline grouping UI; list is flat chronological cards) */
 
   /* Tighter, more compact header + chips on small phones */
   @media (max-width: 480px) {
@@ -1125,7 +1118,7 @@ function buildMonthChips() {
 }
 function renderHeatmap() {
   if (!heatmapEl) return;
-  const weeks = 12; // ~3 meses
+  const weeks = 5; // ~5 semanas (~35 días)
   const totalDays = weeks * 7;
   const dowMon0 = (d) => (d.getDay() + 6) % 7; // 0=lun .. 6=dom
   const startOfWeek = (d) => addDays(d, -dowMon0(d));
@@ -1421,26 +1414,11 @@ function render() {
   const pinnedItems = resolvePinned();
   pinnedWrap.hidden = pinnedItems.length === 0;
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
-  // Keep pinned items also visible in the main contextual list
+  // Keep pinned items also visible in the main contextual list (do not filter them out)
   const rest = items;
-  // Group by day for a simple timeline
-  const groups = {};
-  for (const ev of rest) {
-    const key = ev.start; // all-day events use start date as grouping key
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(ev);
-  }
-  const orderedKeys = Object.keys(groups).sort(); // chronological
-  const parts = [];
-  for (const k of orderedKeys) {
-    const label = formatDay(k);
-    const cards = groups[k]
-      .sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority)
-      .map(cardHTML)
-      .join("");
-    parts.push(`<div class="day-group"><div class="day-label">${label}</div>${cards}</div>`);
-  }
-  list.innerHTML = parts.join("");
+  // Flat chronological list: sort by start date then priority (desc)
+  rest.sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
+  list.innerHTML = rest.map(cardHTML).join("");
   empty.style.display = (rest.length || pinnedItems.length) ? "none" : "block";
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
