@@ -42,7 +42,7 @@
     background: rgba(238,243,241,.9);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    margin: -12px -14px 12px; padding: calc(12px + var(--safe-t)) 12px 8px;
+    margin: -12px -14px 12px; padding: calc(10px + var(--safe-t)) 12px 6px;
     border-bottom: 1px solid var(--line);
   }
   .header-inner { max-width: var(--max); margin: 0 auto; }
@@ -110,6 +110,8 @@
   @media (max-width: 719px) {
     #custom-inline { display: none; }
     #custom-inline.open { display: flex; }
+    /* Hide chips row so the first hit after sticky header is content */
+    .chips { display: none; }
   }
   #custom-inline .di {
     display: flex; flex-direction: column; gap: 4px; min-width: 9.5rem;
@@ -118,6 +120,20 @@
   #custom-inline input[type="date"] {
     min-height: 38px; padding: 6px 10px; font-size: .9rem;
   }
+  /* Heatmap strip */
+  .heatmap {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    gap: 3px; padding: 6px 2px 8px; margin: 6px 0 2px;
+    border-radius: 10px; background: rgba(255,255,255,.6); border: 1px solid var(--line);
+  }
+  .hm-cell {
+    height: 12px; border-radius: 3px; background: #e8eeec; cursor: pointer;
+  }
+  .hm-cell[data-level="1"] { background: #bfeae1; }
+  .hm-cell[data-level="2"] { background: #7fd4c6; }
+  .hm-cell[data-level="3"] { background: #3fbfae; }
+  .hm-cell[data-level="4"] { background: #0f766e; }
+  .heatmap-label { font-size: .74rem; color: var(--muted); margin: 0 0 6px 4px; }
   #list, #pinned { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 8px; }
   .card {
     position: relative; background: var(--card); border-radius: var(--radius);
@@ -199,9 +215,10 @@
 
   /* Tighter, more compact header + chips on small phones */
   @media (max-width: 480px) {
-    header { margin: -12px -14px 10px; padding: calc(8px + var(--safe-t)) 10px 6px; }
-    h1 { font-size: 1.05rem; }
-    .sub { font-size: .78rem; }
+    header { margin: -12px -14px 8px; padding: calc(8px + var(--safe-t)) 10px 6px; }
+    h1 { font-size: 1.05rem; line-height: 1.2; }
+    /* Collapse secondary line to keep header slim */
+    .sub { display: none; }
     .chip { min-height: 32px; padding: 6px 10px; font-size: .82rem; }
     .icon-btn { min-height: 36px; padding: 6px 10px; font-size: .8rem; }
   }
@@ -312,15 +329,24 @@
         <button type="button" class="btn primary" id="save-profile">Guardar perfil</button>
       </div>
     </section>
-
+ 
+    <div class="section-label" id="list-label">Próximos</div>
+    <div id="list"></div>
+    <!-- Optional pin heatmap based on localStorage pins -->
+    <div id="heatmap" aria-hidden="false">
+      <div class="heatmap" id="pin-heatmap" role="list" aria-label="Densidad de fijados (próximos días)"></div>
+    </div>
+    <p id="filter-empty" class="empty">Nada en ese tramo. Prueba otro o vuelve a Importante.</p>
+    <!-- Pinned moved below the main list so weekend/urgente is the first hit -->
     <div id="pinned-wrap" hidden>
       <div class="section-label">Fijados · lo que queréis hacer</div>
       <div id="pinned"></div>
     </div>
-
-    <div class="section-label" id="list-label">Próximos</div>
-    <div id="list"></div>
-    <p id="filter-empty" class="empty">Nada en ese tramo. Prueba otro o vuelve a Importante.</p>
+    <!-- Evergreen pool (inventory-owned). Renders when window.EVERGREEN exists -->
+    <div id="evergreen-wrap">
+      <div class="section-label">Siempre disponibles</div>
+      <div id="evergreen"></div>
+    </div>
     <footer id="updated"></footer>
   </div>
 <script>
@@ -882,6 +908,14 @@ function typeBadge(type) {
   };
   return map[type] || ["soon", "Próximo"];
 }
+function normalizeLinkLabel(label) {
+  if (!label) return "Abrir";
+  const s = String(label).trim();
+  const verbs = ["Abrir", "Ver", "Comprar", "Inscribirse", "Inscribir", "Reservar"];
+  const lower = s.toLowerCase();
+  if (verbs.some(v => lower.startsWith(v.toLowerCase()))) return s;
+  return "Ver " + s;
+}
 function cardHTML(ev) {
   const pinned = pins.has(ev.id);
   const [bClass, bLabel] = typeBadge(ev.type);
@@ -892,6 +926,7 @@ function cardHTML(ev) {
   const when = ev.start === ev.end
     ? formatDay(ev.start) + (ev.times ? " · " + ev.times : "")
     : formatDay(ev.start) + " – " + formatDay(ev.end) + (ev.times ? " · " + ev.times : "");
+  const actionText = normalizeLinkLabel(ev.linkLabel);
   return `<article class="card type-${ev.type}${pinned ? " pinned-card" : ""}" data-id="${ev.id}">
     <div class="top-row">
       <div class="badges">
@@ -904,12 +939,12 @@ function cardHTML(ev) {
     <p class="why">${tpl(ev.why)}</p>
     <p class="meta">${tpl(ev.place || "")}</p>
     <div class="actions">
-      ${ev.link ? `<a class="btn primary" href="${ev.link}" target="_blank" rel="noopener">${ev.linkLabel || "Abrir"}</a>` : ""}
+      ${ev.link ? `<a class="btn primary" href="${ev.link}" target="_blank" rel="noopener">${actionText}</a>` : ""}
     </div>
   </article>`;
 }
 
-let mode = "upcoming";
+let mode = "weekend";
 const list = document.getElementById("list");
 const pinnedEl = document.getElementById("pinned");
 const pinnedWrap = document.getElementById("pinned-wrap");
@@ -922,6 +957,8 @@ const listLabel = document.getElementById("list-label");
 const kidsEditor = document.getElementById("kids-editor");
 const monthChips = document.getElementById("month-chips");
 const dateToggle = document.getElementById("date-toggle");
+const heatmapEl = document.getElementById("pin-heatmap");
+const evergreenEl = document.getElementById("evergreen");
 
 function setChip(preset) {
   document.querySelectorAll(".chip").forEach(c => {
@@ -953,6 +990,71 @@ function buildMonthChips() {
       mode = chip.dataset.preset;
       setChip(mode);
       render();
+    });
+  });
+}
+function renderHeatmap() {
+  if (!heatmapEl) return;
+  const days = 28;
+  const counts = new Array(days).fill(0);
+  const start = TODAY;
+  const pinnedIds = [...pins];
+  const pinnedEvents = EVENTS.filter(ev => pinnedIds.includes(ev.id));
+  for (let i = 0; i < days; i++) {
+    const d = addDays(start, i);
+    const to = d;
+    for (const ev of pinnedEvents) {
+      if (overlaps(ev, d, to)) counts[i] += 1;
+    }
+  }
+  const cells = [];
+  for (let i = 0; i < days; i++) {
+    const d = addDays(start, i);
+    const dateStr = ymd(d);
+    const c = counts[i];
+    const level = c >= 4 ? 4 : c; // 0..4
+    const div = document.createElement("div");
+    div.className = "hm-cell";
+    if (level > 0) div.setAttribute("data-level", String(level));
+    div.setAttribute("data-date", dateStr);
+    div.title = `${formatDay(dateStr)} · ${c ? c : "sin"} fijados`;
+    div.addEventListener("click", () => {
+      fromEl.value = dateStr;
+      toEl.value = dateStr;
+      useCustomRange();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    cells.push(div);
+  }
+  heatmapEl.replaceChildren(...cells);
+}
+function renderEvergreen() {
+  if (!evergreenEl) return;
+  const data = Array.isArray(window.EVERGREEN) ? window.EVERGREEN : [];
+  if (!data.length) {
+    evergreenEl.innerHTML = "";
+    return;
+  }
+  const html = data.map((it, idx) => {
+    const t = it.title || `Elemento ${idx+1}`;
+    const type = it.type || "soon";
+    const link = it.link ? `<a class="btn ghost" href="${it.link}" target="_blank" rel="noopener">${normalizeLinkLabel(it.linkLabel || "Abrir")}</a>` : "";
+    return `<article class="card type-${type}">
+      <h3 class="title">${t}</h3>
+      <div class="actions">
+        <button type="button" class="btn primary" data-evergreen="${it.id || `ever-${idx}`}">Fijar</button>
+        ${link}
+      </div>
+    </article>`;
+  }).join("");
+  evergreenEl.innerHTML = html;
+  evergreenEl.querySelectorAll("[data-evergreen]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-evergreen");
+      const date = prompt("Elige fecha (AAAA-MM-DD):", ymd(TODAY));
+      if (date && /^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
+        alert("Fijado «" + id + "» para " + date + ". (Conectar a inventario/pins)");
+      }
     });
   });
 }
@@ -1087,6 +1189,8 @@ function render() {
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
   bindPins(document);
+  renderHeatmap();
+  renderEvergreen();
 }
 
 document.getElementById("settings-toggle").addEventListener("click", () => {
@@ -1115,6 +1219,7 @@ document.querySelectorAll('.chip[data-preset]').forEach(chip => {
     render();
   });
 });
+setChip(mode);
 if (dateToggle) {
   dateToggle.addEventListener("click", () => {
     const isOpen = customInline.classList.toggle("open");
