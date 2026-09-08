@@ -153,6 +153,11 @@
   .badge.ticket { background: #ffedd5; color: #c2410c; }
   .badge.beach { background: #e0f2fe; color: #0369a1; }
   .badge.pinned { background: #ccfbf1; color: #0f766e; }
+  /* New badge types */
+  .badge.park { background: #dcfce7; color: #166534; }
+  .badge.hike { background: #fee2e2; color: #991b1b; }
+  .badge.museo { background: #ede9fe; color: #5b21b6; }
+  .badge.siempre { background: #e5e7eb; color: #374151; }
   /* Subtle emoji markers on badges (visual only) */
   .badge.ticket::before { content: "🎟️ "; }
   .badge.booked::before { content: "✅ "; }
@@ -877,8 +882,17 @@ let pins = loadPins();
 
 function typeBadge(type) {
   const map = {
-    ticket: ["ticket", "Entradas"], booked: ["booked", "Reservado"], festejo: ["festejo", "Festejo"],
-    beach: ["beach", "Playa"], watch: ["watch", "Vigilando"], aldea: ["aldea", "Aldea"], soon: ["soon", "Próximo"]
+    ticket: ["ticket", "Entradas"],
+    booked: ["booked", "Reservado"],
+    festejo: ["festejo", "Festejo"],
+    beach: ["beach", "Playa"],
+    watch: ["watch", "Vigilando"],
+    aldea: ["aldea", "Aldea"],
+    park: ["park", "Parque"],
+    hike: ["hike", "Senderismo"],
+    museo: ["museo", "Museo"],
+    siempre: ["siempre", "Siempre"],
+    soon: ["soon", "Próximo"]
   };
   return map[type] || ["soon", "Próximo"];
 }
@@ -1094,6 +1108,37 @@ document.getElementById("settings-toggle").addEventListener("click", () => {
   settings.hidden = !open;
   if (open) fillProfileForm();
 });
+
+// Normalize evergreen items' types when present
+// Ensures each EVERGREEN card has a real TYPE (not only "soon"/"Próximo")
+function normalizeEvergreen() {
+  const eg = (window && Array.isArray(window.EVERGREEN)) ? window.EVERGREEN : null;
+  if (!eg) return;
+  for (const item of eg) {
+    if (!item || !item.id) continue;
+    switch (item.id) {
+      case "ever-isabel":
+      case "ever-pericones":
+        item.type = "park";
+        break;
+      case "ever-botanico":
+      case "ever-acuario":
+      case "ever-muja":
+        item.type = "museo";
+        break;
+      case "ever-espinaredo":
+        item.type = "hike";
+        break;
+      default:
+        // No-op: aldea/beach/etc remain as-is
+        // If a leftover sole type is "soon", keep tags but prefer keeping existing real type if known elsewhere
+        if (item.type === "soon" && typeof item.tags !== "undefined") {
+          // leave as-is; upstream content should provide a real type
+        }
+    }
+  }
+}
+
 document.getElementById("add-kid").addEventListener("click", () => {
   readProfileForm();
   profile.kids.push({ name: "", birthYear: null });
@@ -1137,6 +1182,7 @@ fromEl.value = ymd(TODAY);
 toEl.value = ymd(addDays(TODAY, 14));
 document.getElementById("updated").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
+normalizeEvergreen();
 render();
 
 // Geolocation button: set base to nearest known city
