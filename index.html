@@ -821,21 +821,21 @@ window.EVERGREEN = [
     title: "Parque Isabel la Católica",
     why: "Patos, lago y columpios; paseo fácil cerca de {{base}}.",
     place: "Gijón",
-    type: "siempre"
+    type: "park"
   },
   {
     id: "ever-pericones",
     title: "Parque de Los Pericones",
     why: "Prao grande para correr y volar cometas; logística simple con carrito.",
     place: "Gijón",
-    type: "siempre"
+    type: "park"
   },
   {
     id: "ever-botanico",
     title: "Jardín Botánico Atlántico",
     why: "Sombra, estanques y laberinto; <12 gratis. Sep mar–dom 10–20; Oct 10–18; lun cerrado.",
     place: "Gijón · Jardín Botánico",
-    type: "siempre",
+    type: "park",
     link: "https://drupal.gijon.es/es/jardin-botanico-atlantico-de-gijon",
     linkLabel: "Horarios"
   },
@@ -862,7 +862,7 @@ window.EVERGREEN = [
     title: "Acuario de Gijón",
     why: "Plan cubierto si llueve; charlas lun/vie 13:00; {{kid1}} <3 años no paga.",
     place: "Gijón · Acuario",
-    type: "siempre",
+    type: "acuario",
     link: "https://acuariogijon.es/",
     linkLabel: "Acuario"
   },
@@ -871,7 +871,7 @@ window.EVERGREEN = [
     title: "MUJA — visita museo",
     why: "Dinosaurios y sala infantil; revisar agenda de talleres aparte.",
     place: "Colunga · MUJA",
-    type: "siempre",
+    type: "museo",
     link: "https://www.museojurasicoasturias.com/",
     linkLabel: "MUJA"
   },
@@ -994,8 +994,20 @@ let pins = loadPins();
 
 function typeBadge(type) {
   const map = {
-    ticket: ["ticket", "Entradas"], booked: ["booked", "Reservado"], festejo: ["festejo", "Festejo"],
-    beach: ["beach", "Playa"], watch: ["watch", "Vigilando"], aldea: ["aldea", "Aldea"], soon: ["soon", "Próximo"]
+    // Core types
+    ticket: ["ticket", "Entradas"],
+    booked: ["booked", "Reservado"],
+    festejo: ["festejo", "Festejo"],
+    beach: ["beach", "Playa"],
+    watch: ["watch", "Vigilando"],
+    aldea: ["aldea", "Aldea"],
+    soon: ["soon", "Próximo"],
+    // Expanded types (badges only; reuse existing badge styles for colors)
+    park: ["aldea", "Parque"],
+    hike: ["aldea", "Senderismo"],
+    siempre: ["watch", "Siempre"],
+    museo: ["watch", "Museo"],
+    acuario: ["watch", "Acuario"]
   };
   return map[type] || ["soon", "Próximo"];
 }
