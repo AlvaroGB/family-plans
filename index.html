@@ -966,7 +966,7 @@ function gcalStamp(d, hm) {
 }
 function parseFirstTime(times) {
   if (!times) return null;
-  const m = times.match(/\\b(\\d{1,2}:\\d{2})\\b/);
+  const m = times.match(/\b(\d{1,2}:\d{2})\b/);
   return m ? m[1] : null;
 }
 function openGoogleCalendar(ev) {
@@ -1225,7 +1225,7 @@ function renderEvergreen() {
       const def = btn.getAttribute("data-default") || ymd(TODAY);
       const picked = window.prompt("Elige fecha (YYYY-MM-DD)", def);
       if (!picked) return; // cancelado
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(picked)) { alert("Fecha inválida"); return; }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(picked)) { alert("Fecha inválida"); return; }
       const pid = evergreenPinId(egId, picked);
       if (pins.has(pid)) pins.delete(pid);
       else pins.add(pid);
