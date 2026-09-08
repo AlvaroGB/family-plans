@@ -42,7 +42,7 @@
     background: rgba(238,243,241,.9);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    margin: -12px -14px 14px; padding: calc(14px + var(--safe-t)) 14px 10px;
+    margin: -12px -14px 12px; padding: calc(12px + var(--safe-t)) 12px 8px;
     border-bottom: 1px solid var(--line);
   }
   .header-inner { max-width: var(--max); margin: 0 auto; }
@@ -56,13 +56,14 @@
   }
   .chips {
     display: flex; gap: 10px 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
-    padding: 12px 0 4px; margin: 0 -2px; scrollbar-width: none;
+    padding: 8px 0 2px; margin: 0 -2px; scrollbar-width: none;
   }
   .chips::-webkit-scrollbar { display: none; }
   .chip {
+    display: inline-flex; align-items: center; justify-content: center;
     flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
-    color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: .85rem;
-    font-weight: 600; cursor: pointer;
+    color: var(--ink); border-radius: 999px; padding: 7px 12px; font-size: .85rem;
+    min-height: 38px; font-weight: 600; cursor: pointer;
   }
   .chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
   .panel {
@@ -224,7 +225,7 @@
           <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
           <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
           <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
-          <button type="button" class="chip" data-preset="month" aria-pressed="false">Este mes</button>
+          <span id="month-chips" aria-label="Meses"></span>
           <div id="custom-inline" title="Rango libre">
             <div class="di">
               <label for="from">Desde</label>
@@ -367,7 +368,7 @@ const EVENTS = [
     title: "Bromas dulces (Rincones)",
     start: "2026-09-19", end: "2026-09-19",
     times: "13:00 o 18:00 · todas las edades",
-    why: "Buen encaje para peques de distintas edades. Entradas bajando (18:00 «últimas»).",
+    why: "Teatro dulce y cercano para distintas edades: bien para {{kid0}} y {{kid1}}. Entradas volando (18:00 casi últimas).",
     place: "Laboral · cerca de {{base}}",
     priority: 100, type: "ticket", tags: ["urgent", "ticket"],
     link: "https://entradas.turismoasturias.es/es/laboral-ciudad-de-la-cultura/r-y-r-2026-bromas-dulces-como-la-miel/",
@@ -378,7 +379,7 @@ const EVENTS = [
     title: "ParkePortal",
     start: "2026-09-12", end: "2026-09-12",
     times: "12:00–14:00 y 16:30–19:00 · foam 19:00",
-    why: "Hinchables y juegos al aire libre. Buen plan de sábado en familia.",
+    why: "Hinchables, talleres y juegos al aire libre; fácil logística con carrito. Buen sábado en familia.",
     place: "El Pelambre, Villaviciosa",
     priority: 90, type: "festejo", tags: ["soon", "festejo"],
     link: "https://fiestesdelportal.es/",
@@ -389,7 +390,7 @@ const EVENTS = [
     title: "MUJA — Pequeños chefs",
     start: "2026-09-13", end: "2026-09-13",
     times: "13:00–13:45 · reservado",
-    why: "Taller 4–11: pensado para {{kid0}}. Si {{kid1}} es menor, suele quedar fuera del taller (museo 0–3 gratis).",
+    why: "Taller práctico 4–11 para {{kid0}}. Si {{kid1}} es menor, el taller le queda grande (museo 0–3 gratis).",
     place: "Colunga",
     priority: 95, type: "booked", tags: ["booked"],
     link: "https://www.museojurasicoasturias.com/",
@@ -400,7 +401,7 @@ const EVENTS = [
     title: "Mímesis (Rincones)",
     start: "2026-09-18", end: "2026-09-18",
     times: "18:00 · edades 0–3",
-    why: "Franja 0–3: mejor para {{kid1}}. {{kid0}} puede quedar fuera de la edad recomendada.",
+    why: "Espectáculo sensorial 0–3 perfecto para {{kid1}}; {{kid0}} quizá mayor para la franja.",
     place: "Laboral",
     priority: 55, type: "ticket", tags: ["ticket"],
     link: "https://entradas.turismoasturias.es/es/laboral-ciudad-de-la-cultura/",
@@ -411,7 +412,7 @@ const EVENTS = [
     title: "Fiestas del Portal",
     start: "2026-09-11", end: "2026-09-16",
     times: "Varios días · lun 14 dibujo 11:00 + circo 13:00",
-    why: "Semana de fiesta. El sábado es ParkePortal.",
+    why: "Semana grande de Villaviciosa; sábado con ParkePortal.",
     place: "Villaviciosa",
     priority: 70, type: "festejo", tags: ["festejo", "soon"],
     link: "https://fiestesdelportal.es/programa/",
@@ -422,7 +423,7 @@ const EVENTS = [
     title: "San Nicolás · El Coto",
     start: "2026-09-11", end: "2026-09-13",
     times: "Vie–dom · hinchables / verbena de barrio",
-    why: "Plan corto de barrio por la tarde.",
+    why: "Plan corto de tarde con hinchables y verbena de barrio cerca.",
     place: "Barrio El Coto, Gijón",
     priority: 50, type: "festejo", tags: ["festejo"],
     link: "https://www.gijon.es/sites/default/files/inline-files/web%2BFest%2BBByPP%2B26.pdf",
@@ -433,7 +434,7 @@ const EVENTS = [
     title: "Fiestas Populares Moreda",
     start: "2026-09-11", end: "2026-09-13",
     times: "Vie–dom · barrio Gijón (no Aller)",
-    why: "Otra opción de barrio el mismo finde.",
+    why: "Otra verbena de barrio el mismo finde en Gijón (no Aller).",
     place: "Barrio Moreda, Gijón",
     priority: 45, type: "festejo", tags: ["festejo"],
     link: "https://www.gijon.es/sites/default/files/inline-files/web%2BFest%2BBByPP%2B26.pdf",
@@ -444,7 +445,7 @@ const EVENTS = [
     title: "Natación municipal",
     start: "2026-09-22", end: "2026-09-28",
     times: "Ventana de inscripción · hora aún no publicada",
-    why: "Cursos acuáticos infantiles. Vigilando hora y grupos.",
+    why: "Inscripción a cursos infantiles; revisar hora y grupo cuando publiquen.",
     place: "Piscina El Llano, Gijón",
     priority: 80, type: "watch", tags: ["watch", "urgent"],
     link: "https://drupal.gijon.es/sites/default/files/2026-08/Inscripciones%20y%20renovaciones%20octubre%2026_1.pdf",
@@ -455,7 +456,7 @@ const EVENTS = [
     title: "Playa (agua ≥ 21 °C)",
     start: "2026-09-08", end: "2026-09-11",
     times: "AEMET San Lorenzo ~21–23 °C estos días",
-    why: "Por encima de la barra de baño cómoda con peques.",
+    why: "Agua templada, ideal para peques; bandeja tranquila si el mar acompaña.",
     place: "{{base}}",
     priority: 60, type: "beach", tags: ["soon"],
     link: "https://www.aemet.es/es/eltiempo/prediccion/playas/sanlorenzo-3302403",
@@ -466,7 +467,7 @@ const EVENTS = [
     title: "Aldea · Peón",
     start: "2026-09-08", end: "2026-10-31",
     times: "Cualquier día · Casa Pepito cerrado miércoles",
-    why: "Mesa + paseo fácil. Ideal sin agenda.",
+    why: "Mesa amplia + paseo fácil; ideal cuando no apetece agenda cerrada.",
     place: "Peón (Villaviciosa)",
     priority: 30, type: "aldea", tags: ["aldea"],
     link: "https://casapepito.es/",
@@ -477,7 +478,7 @@ const EVENTS = [
     title: "Aldea · Arroes",
     start: "2026-09-08", end: "2026-10-31",
     times: "Sampedro cerrado martes",
-    why: "Aldea cercana con mesa y paseo corto.",
+    why: "Aldea cercana con restaurante y paseo corto; buena para sobremesa.",
     place: "Arroes",
     priority: 28, type: "aldea", tags: ["aldea"],
     link: "https://www.turismovillaviciosa.es/turismo/restaurante/sampedro_479_380_2556_0_1_aloj.html",
@@ -613,10 +614,39 @@ const fromEl = document.getElementById("from");
 const toEl = document.getElementById("to");
 const listLabel = document.getElementById("list-label");
 const kidsEditor = document.getElementById("kids-editor");
+const monthChips = document.getElementById("month-chips");
 
 function setChip(preset) {
   document.querySelectorAll(".chip").forEach(c => {
     c.setAttribute("aria-pressed", c.dataset.preset === preset ? "true" : "false");
+  });
+}
+function buildMonthChips() {
+  if (!monthChips) return;
+  const fmtShort = (d) => d.toLocaleDateString("es-ES", { month: "short" }).replace(/\.$/, "");
+  const fmtLong = (d) => d.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const chips = [];
+  for (let i = 0; i < 3; i++) {
+    const d = new Date(TODAY.getFullYear(), TODAY.getMonth() + i, 1);
+    const id = `m${i}`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip";
+    btn.dataset.preset = id;
+    btn.dataset.month = String(d.getMonth());
+    btn.dataset.year = String(d.getFullYear());
+    btn.setAttribute("aria-pressed", "false");
+    btn.setAttribute("aria-label", `Mes: ${fmtLong(d)}`);
+    btn.textContent = fmtShort(d)[0].toUpperCase() + fmtShort(d).slice(1);
+    chips.push(btn);
+  }
+  monthChips.replaceChildren(...chips);
+  monthChips.querySelectorAll(".chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      mode = chip.dataset.preset;
+      setChip(mode);
+      render();
+    });
   });
 }
 function filtered() {
@@ -633,9 +663,10 @@ function filtered() {
   if (mode === "week") {
     return EVENTS.filter(ev => overlaps(ev, TODAY, addDays(TODAY, 6))).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   }
-  if (mode === "month") {
-    const start = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
-    const end = new Date(TODAY.getFullYear(), TODAY.getMonth()+1, 0);
+  if (mode === "m0" || mode === "m1" || mode === "m2") {
+    const offset = Number(mode.slice(1));
+    const start = new Date(TODAY.getFullYear(), TODAY.getMonth() + offset, 1);
+    const end = new Date(TODAY.getFullYear(), TODAY.getMonth() + offset + 1, 0);
     return EVENTS.filter(ev => overlaps(ev, start, end)).sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   }
   const f = fromEl.value ? parseYMD(fromEl.value) : TODAY;
@@ -738,6 +769,7 @@ document.getElementById("save-profile").addEventListener("click", () => {
   render();
 });
 
+buildMonthChips();
 document.querySelectorAll(".chip").forEach(chip => {
   chip.addEventListener("click", () => {
     mode = chip.dataset.preset;
@@ -755,12 +787,7 @@ function useCustomRange() {
 fromEl.addEventListener("change", useCustomRange);
 toEl.addEventListener("change", useCustomRange);
 
-// First visit: open profile if empty
-const needsSetup = !localStorage.getItem(PROFILE_KEY) || (!profile.base && !profile.kids.some(k => k.name || k.birthYear));
-if (needsSetup) {
-  settings.hidden = false;
-  fillProfileForm();
-}
+// Perfil: colapsado por defecto. No abrir automáticamente en primera visita.
 
 fromEl.value = ymd(TODAY);
 toEl.value = ymd(addDays(TODAY, 14));
