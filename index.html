@@ -1283,6 +1283,24 @@ function bindPins(root) {
       const id = btn.getAttribute("data-pin");
       const ev = EVENTS.find(e => e.id === id);
       const wasPinned = pins.has(id);
+      const nowPinned = !wasPinned;
+      // Optimistic UI: update button and card immediately for instant feedback
+      btn.setAttribute("aria-pressed", nowPinned ? "true" : "false");
+      btn.textContent = nowPinned ? "Fijado" : "Fijar";
+      if (ev) {
+        const ariaLabel = nowPinned ? ("Quitar «" + tpl(ev.title) + "» de Fijados") : ("Fijar «" + tpl(ev.title) + "»");
+        const titleAttr = nowPinned ? "Quitar de Fijados" : "Fijar";
+        btn.setAttribute("aria-label", ariaLabel);
+        btn.setAttribute("title", titleAttr);
+      }
+      const card = btn.closest(".card");
+      if (card) card.classList.toggle("pinned-card", nowPinned);
+      // Ensure Fijados section becomes visible immediately on first pin
+      if (nowPinned) {
+        const wrap = document.getElementById("pinned-wrap");
+        if (wrap) wrap.hidden = false;
+      }
+      // Update data and optionally open Calendar (still within user gesture)
       if (wasPinned) pins.delete(id);
       else {
         pins.add(id);
@@ -1291,16 +1309,16 @@ function bindPins(root) {
         }
       }
       savePins(pins);
+      // aria-live polite confirmation (short)
       const live = document.getElementById("live");
       if (live && ev) {
-        live.textContent = (wasPinned ? "Quitado de Fijados: " : "Añadido a Fijados: ") + tpl(ev.title);
+        live.textContent = (nowPinned ? "Fijado: " : "Quitado: ") + tpl(ev.title);
       }
       render();
       // After pinning, nudge the Fijados section into view so the user sees it
-      if (!wasPinned) {
+      if (nowPinned) {
         const wrap = document.getElementById("pinned-wrap");
         if (wrap) {
-          wrap.hidden = false;
           try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
         }
       }
