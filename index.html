@@ -383,7 +383,13 @@ const PLACES = {
   "moreda": { lat: 43.543, lng: -5.677 },
   "el-llano": { lat: 43.537, lng: -5.64 },
   "peon": HOME_CITIES["peon"],
-  "arroes": HOME_CITIES["arroes"]
+  "arroes": HOME_CITIES["arroes"],
+  "ceceda": { lat: 43.3593215, lng: -5.4466339 },
+  "torazo": { lat: 43.3940314, lng: -5.4015535 },
+  "selorio": { lat: 43.514468, lng: -5.366836 },
+  "espinaredo": { lat: 43.301336, lng: -5.363305 },
+  "rodiles": { lat: 43.533404, lng: -5.379658 },
+  "botanico": { lat: 43.521502, lng: -5.615784 }
 };
 const EVENTS = [
   {
@@ -497,7 +503,7 @@ const EVENTS = [
   {
     id: "aldea-peon",
     title: "Aldea · Peón",
-    start: "2026-09-08", end: "2026-10-31",
+    start: "2026-09-08", end: "2026-11-30",
     times: "Cualquier día · Casa Pepito cerrado miércoles",
     why: "Mesa amplia + paseo fácil; ideal cuando no apetece agenda cerrada.",
     place: "Peón (Villaviciosa)",
@@ -509,7 +515,7 @@ const EVENTS = [
   {
     id: "aldea-arroes",
     title: "Aldea · Arroes",
-    start: "2026-09-08", end: "2026-10-31",
+    start: "2026-09-08", end: "2026-11-30",
     times: "Sampedro cerrado martes",
     why: "Aldea cercana con restaurante y paseo corto; buena para sobremesa.",
     place: "Arroes",
@@ -721,6 +727,215 @@ const EVENTS = [
     priority: 52, type: "ticket", tags: ["ticket"],
     link: "https://acuariogijon.es/entradas/",
     linkLabel: "Entradas Acuario"
+  },
+  {
+    id: "aldea-ceceda",
+    title: "Aldea · Ceceda + Casa Colo",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "Comidas 13:30–16:00 · lunes cerrado",
+    why: "Aldea con encanto para pasear y sobremesa tranquila; bien para {{kid0}} y {{kid1}}. Cerca de {{base}} si te apetece ruta corta.",
+    place: "Ceceda · Casa Colo",
+    locKey: "ceceda",
+    priority: 32, type: "aldea", tags: ["aldea"],
+    link: "https://casacolo.es/horarios-y-reservas/",
+    linkLabel: "Casa Colo — horarios"
+  },
+  {
+    id: "aldea-torazo",
+    title: "Aldea · Torazo + El Balcón",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "Reserva 985 898 099",
+    why: "Pueblo precioso en Cabranes; buena comida con vistas y paseo corto con los peques.",
+    place: "Torazo · El Balcón (Hostería)",
+    locKey: "torazo",
+    priority: 31, type: "aldea", tags: ["aldea"],
+    link: "https://www.hosteriadetorazo.com/",
+    linkLabel: "Hostería de Torazo"
+  },
+  {
+    id: "aldea-barzana",
+    title: "Aldea · Bárzana / Selorio — La Reguerina + Rodiles",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "La Reguerina 12:30–17:00 · miércoles cerrado",
+    why: "Plan mixto: comida casera y, si apetece, paseo por la ría o asomarse a Rodiles. Ideal con {{kid0}} y {{kid1}}.",
+    place: "Bárzana / Selorio · La Reguerina",
+    locKey: "selorio",
+    priority: 33, type: "aldea", tags: ["aldea"],
+    link: "https://www.turismovillaviciosa.es/",
+    linkLabel: "Turismo Villaviciosa"
+  },
+  {
+    id: "aldea-espinaredo",
+    title: "Aldea · Espinaredo — hórreos + El Rincón",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "Mejor con reserva en El Rincón",
+    why: "Ruta sencilla entre hórreos y comida tradicional; plan de aldea que gusta a peques curiosos.",
+    place: "Espinaredo (Piloña) · El Rincón",
+    locKey: "espinaredo",
+    priority: 29, type: "aldea", tags: ["aldea"],
+    link: "https://viajerosconfesos.com/ruta-por-los-horreos-de-espinaredo-planes-en-asturias/",
+    linkLabel: "Ruta hórreos · guía"
+  },
+  {
+    id: "beach-rodiles",
+    title: "Playa de Rodiles",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "Marea y bandera · merendero en pinar",
+    why: "Playa amplia y familiar; paseos por la ría y merendero entre pinos. Si el mar acompaña, ideal con peques.",
+    place: "Rodiles (Villaviciosa)",
+    locKey: "rodiles",
+    priority: 35, type: "beach", tags: ["soon"],
+    link: "https://www.turismoasturias.es/es/descubre/costa/playas/playa-de-rodiles",
+    linkLabel: "Turismo Asturias"
+  },
+  {
+    id: "park-isabel",
+    title: "Parque Isabel la Católica · Gijón",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "Parque urbano · patos y lago",
+    why: "Paseo fácil con columpios y patos; logística simple cerca de {{base}}.",
+    place: "Gijón",
+    locKey: "gijon",
+    priority: 22, type: "soon", tags: ["soon"]
+  },
+  {
+    id: "park-pericones",
+    title: "Parque de Los Pericones · Gijón",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "Parque urbano · prao y columpios",
+    why: "Plan libre en prao grande; perfecto para que corran {{kid0}} y {{kid1}} sin complicaciones.",
+    place: "Gijón",
+    locKey: "gijon",
+    priority: 21, type: "soon", tags: ["soon"]
+  },
+  {
+    id: "botanico",
+    title: "Jardín Botánico Atlántico",
+    start: "2026-09-08", end: "2026-11-30",
+    times: "Sep mar–dom 10–20 · Oct 10–18 · lunes cerrado · <12 gratis",
+    why: "Paseo verde con laberinto y zonas tranquilas; buen plan pausado para {{kid0}} y {{kid1}}.",
+    place: "Gijón · Jardín Botánico",
+    locKey: "botanico",
+    priority: 34, type: "soon", tags: ["soon"],
+    link: "https://drupal.gijon.es/es/jardin-botanico-atlantico-de-gijon",
+    linkLabel: "Jardín Botánico Gijón"
+  }
+];
+
+/* Evergreen pool for «Siempre disponibles» (software-ui PR #5) */
+window.EVERGREEN = [
+  {
+    id: "ever-ceceda",
+    title: "Ceceda + Casa Colo",
+    why: "Aldea con encanto; comidas 13:30–16:00 (lun cerrado). Sobremesa tranquila con {{kid0}} y {{kid1}}.",
+    place: "Ceceda (Nava) · Casa Colo",
+    type: "aldea",
+    link: "https://casacolo.es/horarios-y-reservas/",
+    linkLabel: "Casa Colo"
+  },
+  {
+    id: "ever-torazo",
+    title: "Torazo + El Balcón",
+    why: "Pueblo precioso con vistas; llama 985 898 099 para reservar. Cerca de {{base}} para ruta corta.",
+    place: "Torazo (Cabranes) · El Balcón (Hostería)",
+    type: "aldea",
+    link: "https://www.hosteriadetorazo.com/",
+    linkLabel: "Hostería de Torazo"
+  },
+  {
+    id: "ever-reguerina-rodiles",
+    title: "Bárzana / La Reguerina + Rodiles",
+    why: "Comida casera (mié cerrado) y paseo por la ría o playa de Rodiles. Plan sencillo con peques.",
+    place: "Bárzana (Selorio) + Playa de Rodiles",
+    type: "aldea",
+    link: "https://www.turismoasturias.es/es/descubre/costa/playas/playa-de-rodiles",
+    linkLabel: "Rodiles · Turismo"
+  },
+  {
+    id: "ever-espinaredo",
+    title: "Espinaredo — hórreos + El Rincón",
+    why: "Ruta corta entre hórreos y comida tradicional; buen paseo para {{kid0}} y {{kid1}}.",
+    place: "Espinaredo (Piloña) · El Rincón",
+    type: "hike",
+    link: "https://viajerosconfesos.com/ruta-por-los-horreos-de-espinaredo-planes-en-asturias/",
+    linkLabel: "Ruta hórreos"
+  },
+  {
+    id: "ever-rodiles",
+    title: "Playa de Rodiles",
+    why: "Playa amplia con merendero bajo pinar; revisar bandera y marea.",
+    place: "Selorio (Villaviciosa)",
+    type: "beach",
+    link: "https://www.turismoasturias.es/es/descubre/costa/playas/playa-de-rodiles",
+    linkLabel: "Rodiles · Turismo"
+  },
+  {
+    id: "ever-isabel",
+    title: "Parque Isabel la Católica",
+    why: "Patos, lago y columpios; paseo fácil cerca de {{base}}.",
+    place: "Gijón",
+    type: "siempre"
+  },
+  {
+    id: "ever-pericones",
+    title: "Parque de Los Pericones",
+    why: "Prao grande para correr y volar cometas; logística simple con carrito.",
+    place: "Gijón",
+    type: "siempre"
+  },
+  {
+    id: "ever-botanico",
+    title: "Jardín Botánico Atlántico",
+    why: "Sombra, estanques y laberinto; <12 gratis. Sep mar–dom 10–20; Oct 10–18; lun cerrado.",
+    place: "Gijón · Jardín Botánico",
+    type: "siempre",
+    link: "https://drupal.gijon.es/es/jardin-botanico-atlantico-de-gijon",
+    linkLabel: "Horarios"
+  },
+  {
+    id: "ever-peon",
+    title: "Peón + Casa Pepito",
+    why: "Aldea cercana con paseo fácil; buen sitio para sobremesa con {{kid0}} y {{kid1}}.",
+    place: "Peón (Villaviciosa) · Casa Pepito",
+    type: "aldea",
+    link: "https://casapepito.es/",
+    linkLabel: "Casa Pepito"
+  },
+  {
+    id: "ever-arroes",
+    title: "Arroes + Sampedro",
+    why: "Aldea tranquila y restaurante clásico; martes cerrado.",
+    place: "Arroes · Sampedro",
+    type: "aldea",
+    link: "https://www.turismovillaviciosa.es/turismo/restaurante/sampedro_479_380_2556_0_1_aloj.html",
+    linkLabel: "Sampedro"
+  },
+  {
+    id: "ever-acuario",
+    title: "Acuario de Gijón",
+    why: "Plan cubierto si llueve; charlas lun/vie 13:00; {{kid1}} <3 años no paga.",
+    place: "Gijón · Acuario",
+    type: "siempre",
+    link: "https://acuariogijon.es/",
+    linkLabel: "Acuario"
+  },
+  {
+    id: "ever-muja",
+    title: "MUJA — visita museo",
+    why: "Dinosaurios y sala infantil; revisar agenda de talleres aparte.",
+    place: "Colunga · MUJA",
+    type: "siempre",
+    link: "https://www.museojurasicoasturias.com/",
+    linkLabel: "MUJA"
+  },
+  {
+    id: "ever-sanlorenzo",
+    title: "Playa de San Lorenzo",
+    why: "Bandeja del Piles para peques; revisar temperatura del agua y bandera.",
+    place: "Gijón · San Lorenzo",
+    type: "beach",
+    link: "https://www.aemet.es/es/eltiempo/prediccion/playas/sanlorenzo-3302403",
+    linkLabel: "AEMET playa"
   }
 ];
 
