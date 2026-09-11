@@ -123,6 +123,19 @@
     min-height: 38px; font-weight: 600; cursor: pointer;
   }
   .chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
+  /* Evergreen-only filter chips (isolated from header chips) */
+  .eg-chips {
+    display: flex; gap: 10px 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 6px 0 8px; margin: 0 -2px 8px; scrollbar-width: none; align-items: center;
+  }
+  .eg-chips::-webkit-scrollbar { display: none; }
+  .eg-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); border-radius: 999px; padding: 7px 12px; font-size: .85rem;
+    min-height: 38px; font-weight: 600; cursor: pointer;
+  }
+  .eg-chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
   .panel {
     background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
     padding: 14px; margin-bottom: 16px; border: 1px solid var(--line);
@@ -210,6 +223,8 @@
   .eg-date { min-height: 32px; padding: 6px 8px; font-size: .9rem; }
   .eg-row .btn { flex: 0 0 auto; }
   #list, #pinned { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 8px; }
+  /* Evergreen grid and spacing */
+  #evergreen { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 8px; }
   .card {
     position: relative; background: var(--card); border-radius: var(--radius);
     box-shadow: var(--shadow); border: 1px solid var(--line); padding: 16px; overflow: hidden;
@@ -332,6 +347,7 @@
     #custom-inline { display: flex !important; }
     #date-toggle { display: none; }
     #list, #pinned { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    #evergreen { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
     .btn { flex: 0 1 auto; min-width: 140px; }
@@ -342,6 +358,7 @@
     .wrap { padding: 28px 32px 48px; }
     header { margin: -28px -32px 22px; padding: calc(22px + var(--safe-t)) 32px 14px; }
     #list, #pinned { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    #evergreen { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
   }
@@ -449,6 +466,7 @@
     <!-- Evergreen pool (inventory-owned). Renders when window.EVERGREEN exists -->
     <div id="evergreen-wrap">
       <div class="section-label">Siempre disponibles</div>
+      <div id="evergreen-filters" class="eg-chips" aria-label="Filtrar siempre disponibles" hidden></div>
       <div id="evergreen"></div>
     </div>
     <footer id="updated"></footer>
@@ -1241,6 +1259,8 @@ const kidsEditor = document.getElementById("kids-editor");
 const monthChips = document.getElementById("month-chips");
 const dateToggle = document.getElementById("date-toggle");
 const evergreenEl = document.getElementById("evergreen");
+const evergreenFilters = document.getElementById("evergreen-filters");
+let egFilter = "all";
 const novedadesWrap = document.getElementById("novedades-wrap");
 const novedadesList = document.getElementById("novedades");
 
@@ -1277,6 +1297,50 @@ function buildMonthChips() {
     });
   });
 }
+function syncEgFilterButtons() {
+  if (!evergreenFilters) return;
+  evergreenFilters.querySelectorAll(".eg-chip").forEach(btn => {
+    const t = btn.getAttribute("data-type") || "all";
+    btn.setAttribute("aria-pressed", t === egFilter ? "true" : "false");
+  });
+}
+function buildEvergreenFilters() {
+  if (!evergreenFilters) return;
+  const eg = Array.isArray(window.EVERGREEN) ? window.EVERGREEN : [];
+  const types = Array.from(new Set(eg.map(it => it && it.type ? String(it.type) : "other"))).filter(Boolean);
+  if (types.length <= 1) {
+    evergreenFilters.hidden = true;
+    evergreenFilters.innerHTML = "";
+    egFilter = "all";
+    return;
+  }
+  // Sort by human label (Spanish)
+  types.sort((a,b) => {
+    const la = (typeBadge(a)[1] || a);
+    const lb = (typeBadge(b)[1] || b);
+    return la.localeCompare(lb, "es");
+  });
+  const makeBtn = (type, label) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "eg-chip";
+    b.setAttribute("data-type", type);
+    b.setAttribute("aria-pressed", egFilter === type ? "true" : "false");
+    b.textContent = label;
+    b.addEventListener("click", () => {
+      egFilter = type;
+      syncEgFilterButtons();
+      renderEvergreen();
+    });
+    return b;
+  };
+  const chips = [
+    makeBtn("all", "Todos"),
+    ...types.map(t => makeBtn(t, typeBadge(t)[1] || t))
+  ];
+  evergreenFilters.replaceChildren(...chips);
+  evergreenFilters.hidden = false;
+}
 function renderEvergreen() {
   if (!evergreenEl) return;
   const data = Array.isArray(window.EVERGREEN) ? window.EVERGREEN : [];
@@ -1284,7 +1348,8 @@ function renderEvergreen() {
     evergreenEl.innerHTML = "";
     return;
   }
-  const html = data.map((it, idx) => {
+  const view = egFilter === "all" ? data : data.filter(it => (it.type || "other") === egFilter);
+  const html = view.map((it, idx) => {
     const t = it.title || `Elemento ${idx+1}`;
     const type = it.type || "soon";
     const [bClass, bLabel] = typeBadge(type);
@@ -1300,11 +1365,15 @@ function renderEvergreen() {
     } else if (pinnedDates.length > 1) {
       btnLabel = `Fijado · ${pinnedDates.length} fechas`;
     }
-    return `<article class="card type-${type}">
+    const whyText = it.why ? tpl(it.why) : (it.place ? ("Plan sencillo en " + tpl(it.place)) : "Plan sencillo para cualquier día");
+    const placeText = it.place ? `<p class="meta">${tpl(it.place)}</p>` : "";
+    return `<article class="card type-${type}" data-type="${type}">
       <div class="badges">
         <span class="badge ${bClass}">${bLabel}</span>
       </div>
       <h3 class="title">${t}</h3>
+      <p class="why">${whyText}</p>
+      ${placeText}
       <div class="eg-row">
         <button type="button" class="btn primary" data-evergreen="${egId}" data-default="${defaultDate}" aria-pressed="${pinnedNow ? "true" : "false"}">${btnLabel}</button>
         ${link}
@@ -1695,6 +1764,7 @@ toEl.value = ymd(addDays(TODAY, 14));
 document.getElementById("updated").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 normalizeEvergreen();
+buildEvergreenFilters();
 render();
 renderNovedades();
 
