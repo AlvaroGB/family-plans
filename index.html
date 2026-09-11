@@ -163,6 +163,34 @@
     display: flex; flex-wrap: wrap; gap: 8px; align-items: end;
     padding: 4px 0 2px;
   }
+  /* Novedades strip */
+  #novedades-wrap[hidden] { display: none !important; }
+  #novedades-wrap { margin: 6px 0 8px; }
+  .novedades-box {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 6px 8px;
+  }
+  .novedades-list { display: grid; grid-template-columns: 1fr; gap: 2px; }
+  .nov-row {
+    display: flex; align-items: center; gap: 8px;
+    min-height: 26px; font-size: .9rem;
+  }
+  .nov-date {
+    flex: 0 0 auto; min-width: 3.6rem;
+    font-size: .82rem; font-weight: 700; color: var(--muted);
+    text-transform: none; letter-spacing: .01em;
+  }
+  .nov-text {
+    flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    color: var(--ink);
+  }
+  .nov-x {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--muted);
+    cursor: pointer; padding: 2px 6px; border-radius: 6px; font-size: 1rem; line-height: 1;
+  }
+  .nov-x:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--teal-soft); }
   /* Mobile: collapse free-range dates by default to keep header compact */
   @media (max-width: 719px) {
     #custom-inline { display: none; }
@@ -353,6 +381,13 @@
         </div>
       </div>
     </header>
+    <!-- Novedades strip -->
+    <div id="novedades-wrap" hidden>
+      <div class="section-label" style="margin-top:4px">Novedades</div>
+      <div class="novedades-box">
+        <div id="novedades" class="novedades-list"></div>
+      </div>
+    </div>
     <div id="pinned-wrap" hidden>
       <div class="section-label">Fijados · lo que queréis hacer</div>
       <div id="pinned"></div>
@@ -413,6 +448,12 @@ const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
 const PIN_KEY = "family-plans-pinned-v1";
 const PROFILE_KEY = "family-plans-profile-v1";
 const THEME_KEY = "family-plans-theme-v1";
+const NOV_KEY = "family-plans-novedades-dismissed-v1";
+const NOVEDADES = [
+  { id: "2026-09-11-oct",  date: "11 sep", text: "Octubre: FETUMI, Parkilloween, MAE Plaza Mayor" },
+  { id: "2026-09-11-fijar", date: "11 sep", text: "Fijar en cards: feedback instantáneo «Fijado»" }
+  // Tercer hueco opcional: añadir nuevo objeto aquí cuando haya novedades
+];
 
 const DEFAULT_PROFILE = {
   title: "Planes familia",
@@ -1189,6 +1230,8 @@ const kidsEditor = document.getElementById("kids-editor");
 const monthChips = document.getElementById("month-chips");
 const dateToggle = document.getElementById("date-toggle");
 const evergreenEl = document.getElementById("evergreen");
+const novedadesWrap = document.getElementById("novedades-wrap");
+const novedadesList = document.getElementById("novedades");
 
 function setChip(preset) {
   document.querySelectorAll(".chip").forEach(c => {
@@ -1490,6 +1533,44 @@ function render() {
   renderEvergreen();
 }
 
+/* Novedades strip: render max 3 rows; allow per-row dismiss persisted in localStorage */
+function loadNovDismissed() {
+  try { return new Set(JSON.parse(localStorage.getItem(NOV_KEY) || "[]")); }
+  catch { return new Set(); }
+}
+function saveNovDismissed(set) {
+  localStorage.setItem(NOV_KEY, JSON.stringify([...set]));
+}
+let novDismissed = loadNovDismissed();
+function renderNovedades() {
+  if (!novedadesWrap || !novedadesList) return;
+  // Newest first: keep input order, but if ids look like YYYY-MM-DD-*, sort desc by id
+  const sorted = NOVEDADES.slice().sort((a,b) => (b.id || "").localeCompare(a.id || ""));
+  const visible = sorted.filter(it => !novDismissed.has(it.id)).slice(0, 3);
+  if (!visible.length) {
+    novedadesWrap.hidden = true;
+    novedadesList.innerHTML = "";
+    return;
+  }
+  novedadesWrap.hidden = false;
+  novedadesList.innerHTML = visible.map(it => `
+    <div class="nov-row" data-nov="${it.id}">
+      <span class="nov-date">${it.date}</span>
+      <span class="nov-text">${it.text}</span>
+      <button type="button" class="nov-x" aria-label="Cerrar" title="Cerrar" data-dismiss="${it.id}">×</button>
+    </div>
+  `).join("");
+  novedadesList.querySelectorAll("[data-dismiss]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-dismiss");
+      if (!id) return;
+      novDismissed.add(id);
+      saveNovDismissed(novDismissed);
+      renderNovedades();
+    });
+  });
+}
+
 document.getElementById("settings-toggle").addEventListener("click", () => {
   const open = settings.hasAttribute("hidden");
   settings.hidden = !open;
@@ -1604,6 +1685,7 @@ document.getElementById("updated").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 normalizeEvergreen();
 render();
+renderNovedades();
 
 // Geolocation button: set base to nearest known city
 const useGeoBtn = document.getElementById("use-geo");
