@@ -86,6 +86,11 @@
   .header-inner { max-width: var(--max); margin: 0 auto; }
   .title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .hdr-btns { display: flex; align-items: center; gap: 8px; }
+  /* If a pay CTA (#buy-cta) exists, show it as a full-width row under the title.
+     It may initially be injected inside .hdr-btns; hide that placement to avoid flicker
+     and relocate it via a tiny script below. */
+  .header-inner #buy-cta { display: block; width: 100%; margin-top: 6px; }
+  .hdr-btns #buy-cta { display: none; }
   h1 { font-size: 1.2rem; margin: 0 0 2px; letter-spacing: -.02em; }
   .sub { font-size: .82rem; color: var(--muted); margin: 0; }
   /* Container for filter chips placed below sticky header */
@@ -195,8 +200,7 @@
     text-transform: none; letter-spacing: .01em;
   }
   .nov-text {
-    flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-    min-width: 0; /* allow flex item to shrink so ellipsis works; prevents horizontal overflow */
+    flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0;
     color: var(--ink);
   }
   .nov-x {
@@ -334,11 +338,6 @@
     h1 { font-size: 1.05rem; line-height: 1.2; }
     /* Collapse secondary line to keep header slim */
     .sub { display: none; }
-    /* Allow header buttons row to wrap below the title when space is tight (prevents overflow with locked CTA) */
-    .title-row { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
-    .hdr-btns { flex-wrap: wrap; justify-content: flex-end; }
-    /* Keep Oscuro + Perfil on the top row; push Comprar below the title row */
-    #buy-cta { order: 99; flex: 1 1 100%; width: 100%; }
     .chip { min-height: 40px; padding: 8px 12px; font-size: .9rem; }
     .icon-btn { min-height: 36px; padding: 6px 10px; font-size: .8rem; }
   }
@@ -2100,6 +2099,27 @@ renderNovedades();
       }
     }
   });
+})();
+
+// Ensure a possible buy CTA (#buy-cta) sits as a second full-width row under the title.
+// This keeps the top row as: title | Oscuro + Perfil, and moves the CTA below.
+(function ensureBuyCtaPlacement(){
+  const host = document.querySelector(".header-inner");
+  if (!host) return;
+  const titleRow = host.querySelector(".title-row");
+  if (!titleRow) return;
+  function moveIfPresent() {
+    const cta = document.getElementById("buy-cta");
+    if (!cta) return;
+    // Re-parent directly under .header-inner right after .title-row
+    if (cta.parentElement !== host || cta.previousElementSibling !== titleRow) {
+      try { host.insertBefore(cta, titleRow.nextSibling); } catch {}
+    }
+  }
+  moveIfPresent();
+  // In case locking/unlocking injects/removes the CTA later, observe and re-place.
+  const mo = new MutationObserver(() => moveIfPresent());
+  mo.observe(host, { childList: true, subtree: true });
 })();
 
 // Geolocation button: set base to nearest known city
