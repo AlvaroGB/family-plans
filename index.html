@@ -166,8 +166,8 @@
     font-size: .72rem; text-transform: uppercase; letter-spacing: .07em;
     color: var(--muted); margin: 36px 0 12px; font-weight: 700;
   }
-  .section-label:first-of-type { margin-top: 8px; }
-  #pinned-wrap { margin-top: 8px; margin-bottom: 8px; }
+  /* Equalize top gap for all section labels; avoid wrapper collapse */
+  #pinned-wrap { margin: 0 0 8px; overflow: auto; }
   #list { margin-top: 0; }
   #custom-inline {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: end;
@@ -175,7 +175,9 @@
   }
   /* Novedades strip */
   #novedades-wrap[hidden] { display: none !important; }
-  #novedades-wrap { margin: 6px 0 8px; }
+  #novedades-wrap { margin: 0 0 8px; overflow: auto; }
+  /* Evergreen wrapper: ensure label margin doesn't collapse */
+  #evergreen-wrap { margin: 0 0 8px; overflow: auto; }
   .novedades-box {
     background: var(--card);
     border: 1px solid var(--line);
@@ -412,7 +414,7 @@
     </div>
     <!-- Novedades strip -->
     <div id="novedades-wrap" hidden>
-      <div class="section-label" style="margin-top:4px">Novedades</div>
+      <div class="section-label">Novedades</div>
       <div class="novedades-box">
         <div id="novedades" class="novedades-list"></div>
       </div>
