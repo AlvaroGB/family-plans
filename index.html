@@ -375,6 +375,24 @@
     overflow: hidden; clip: rect(0, 0, 0, 0);
     white-space: nowrap; border: 0;
   }
+  /* Soft paywall (sheet) */
+  #paywall[hidden] { display: none !important; }
+  .paywall-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(18,32,30,.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; z-index: 50;
+  }
+  .paywall-modal {
+    width: min(560px, 92vw);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px;
+  }
 </style>
 </head>
 <body>
@@ -433,6 +451,10 @@
           <label for="pf-title">Nombre del tablero</label>
           <input id="pf-title" type="text" placeholder="Planes familia"/>
         </div>
+        <div>
+          <label for="pf-email">Email (opcional)</label>
+          <input id="pf-email" type="text" inputmode="email" placeholder="correo@ejemplo.com"/>
+        </div>
       </div>
       <div class="form-actions" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px">
         <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
@@ -472,7 +494,128 @@
     </div>
     <footer id="updated"><span id="updated-text"></span> · <button type="button" id="copy-link" class="link-btn" aria-label="Copiar enlace de esta página" title="Copiar enlace">Copiar enlace</button></footer>
   </div>
+  <!-- Paywall (soft gate) -->
+  <div id="paywall" class="paywall-backdrop" hidden>
+    <div class="paywall-modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
+      <h3 id="paywall-title" class="title" style="margin:0 0 8px">Planes familia</h3>
+      <p class="why" id="paywall-desc" style="margin:0 0 12px">Edición fundadora · <strong id="paywall-price">€4,99/mes</strong> · 1 familia Asturias</p>
+      <div class="actions" style="gap:8px;margin:0 0 10px">
+        <a class="btn primary" id="paywall-buy" href="#" target="_blank" rel="noopener">Comprar</a>
+      </div>
+      <div class="form-grid full" style="margin:8px 0 4px">
+        <div>
+          <label for="paywall-input">Código (FUNDADOR o token de pago)</label>
+          <input id="paywall-input" type="text" placeholder="FUNDADOR"/>
+        </div>
+      </div>
+      <div class="form-actions" style="gap:8px;margin:8px 0 4px">
+        <button type="button" class="btn ghost" id="paywall-apply">Usar código</button>
+        <button type="button" class="link-btn" id="paywall-close" style="margin-left:auto">Cerrar</button>
+      </div>
+    </div>
+  </div>
 <script>
+/* Config (Álvaro pega el enlace de Lemon aquí cuando lo tenga) */
+const FAMILY_PLANS_LEMON_URL = "#"; // TODO: Álvaro: pega aquí tu Lemon Payment Link
+const FAMILY_PLANS_PRICE_LABEL = "€4,99/mes";
+const UNLOCK_KEY = "family-plans-unlock-v1";
+const FAMILY_KEY = "family-plans-family-v1";
+const FOUNDER_CODE = "FUNDADOR";
+
+/* Desbloqueo local (soft gate) */
+function isUnlocked() {
+  try { return !!localStorage.getItem(UNLOCK_KEY); } catch { return false; }
+}
+function setUnlocked(token) {
+  try { localStorage.setItem(UNLOCK_KEY, token || "1"); } catch {}
+  syncLockUI();
+  closePaywall();
+  const live = document.getElementById("live");
+  if (live) live.textContent = "Acceso desbloqueado";
+}
+function readUnlockFromUrl() {
+  try {
+    const url = new URL(location.href);
+    const p = url.searchParams;
+    let touched = false;
+    if (p.get("founder") === "1") {
+      setUnlocked(FOUNDER_CODE);
+      touched = true;
+    }
+    const tok = p.get("unlock");
+    if (tok) { setUnlocked(tok); touched = true; }
+    if (touched) {
+      p.delete("founder"); p.delete("unlock");
+      const newSearch = p.toString();
+      const next = url.pathname + (newSearch ? "?" + newSearch : "") + url.hash;
+      try { history.replaceState({}, document.title, next); } catch {}
+    }
+  } catch {}
+}
+function openPaywall() {
+  const el = document.getElementById("paywall");
+  if (!el) return;
+  // Sync price and link each time
+  const price = document.getElementById("paywall-price");
+  if (price) price.textContent = FAMILY_PLANS_PRICE_LABEL;
+  const buy = document.getElementById("paywall-buy");
+  if (buy) buy.setAttribute("href", FAMILY_PLANS_LEMON_URL || "#");
+  el.hidden = false;
+}
+function closePaywall() {
+  const el = document.getElementById("paywall");
+  if (el) el.hidden = true;
+}
+function handleUnlockCode(raw) {
+  const v = (raw || "").trim();
+  if (!v) return false;
+  if (v.toUpperCase() === String(FOUNDER_CODE).toUpperCase()) {
+    setUnlocked("founder");
+    return true;
+  }
+  // Placeholder: aceptar token de pago pegado (validación real llegará con Lemon)
+  setUnlocked(v);
+  return true;
+}
+function syncLockUI() {
+  const hdr = document.querySelector(".hdr-btns");
+  if (!hdr) return;
+  let cta = document.getElementById("buy-cta");
+  if (isUnlocked()) {
+    if (cta) cta.remove();
+    return;
+  }
+  if (!cta) {
+    cta = document.createElement("a");
+    cta.id = "buy-cta";
+    cta.className = "icon-btn";
+    cta.href = FAMILY_PLANS_LEMON_URL || "#";
+    cta.target = "_blank";
+    cta.rel = "noopener";
+    cta.textContent = `Comprar · ${FAMILY_PLANS_PRICE_LABEL}`;
+    cta.addEventListener("click", (e) => {
+      // Si el enlace es placeholder, abre el sheet para introducir código
+      if (!FAMILY_PLANS_LEMON_URL || FAMILY_PLANS_LEMON_URL === "#") {
+        e.preventDefault();
+        openPaywall();
+      }
+    });
+    hdr.prepend(cta);
+  } else {
+    cta.textContent = `Comprar · ${FAMILY_PLANS_PRICE_LABEL}`;
+    cta.href = FAMILY_PLANS_LEMON_URL || "#";
+  }
+}
+
+// Familia (mínima): email opcional
+function loadFamily() {
+  try { return JSON.parse(localStorage.getItem(FAMILY_KEY) || "null") || { email: "" }; }
+  catch { return { email: "" }; }
+}
+function saveFamily(f) {
+  try { localStorage.setItem(FAMILY_KEY, JSON.stringify(f || { email: "" })); } catch {}
+}
+let family = loadFamily();
 const _now = new Date();
 const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
 const PIN_KEY = "family-plans-pinned-v1";
@@ -1385,6 +1528,7 @@ function renderEvergreen() {
   // Click: pedir fecha y alternar pin en esa fecha
   evergreenEl.querySelectorAll("[data-evergreen]").forEach(btn => {
     btn.addEventListener("click", () => {
+      if (!isUnlocked()) { openPaywall(); return; }
       const egId = btn.getAttribute("data-evergreen");
       const def = btn.getAttribute("data-default") || ymd(TODAY);
       const pinnedDates = getEvergreenPinnedDates(egId);
@@ -1459,6 +1603,7 @@ function applyDistance(items) {
 function bindPins(root) {
   root.querySelectorAll("[data-pin]").forEach(btn => {
     btn.addEventListener("click", () => {
+      if (!isUnlocked()) { openPaywall(); return; }
       const id = btn.getAttribute("data-pin");
       const ev = EVENTS.find(e => e.id === id);
       const wasPinned = pins.has(id);
@@ -1531,6 +1676,10 @@ function readProfileForm() {
   profile.adults = document.getElementById("pf-adults").value.trim();
   profile.radiusMin = Number(document.getElementById("pf-radius").value) || 60;
   profile.calendarOnPin = document.getElementById("pf-cal").checked;
+  const emailEl = document.getElementById("pf-email");
+  if (emailEl) {
+    family.email = emailEl.value.trim();
+  }
   profile.kids = [...kidsEditor.querySelectorAll(".kid-row")].map(row => ({
     name: row.querySelector('[data-k="name"]').value.trim(),
     birthYear: row.querySelector('[data-k="birthYear"]').value ? Number(row.querySelector('[data-k="birthYear"]').value) : null
@@ -1539,6 +1688,8 @@ function readProfileForm() {
 }
 function fillProfileForm() {
   document.getElementById("pf-title").value = profile.title || "";
+  const emailEl = document.getElementById("pf-email");
+  if (emailEl) emailEl.value = (family && family.email) || "";
   document.getElementById("pf-adults").value = profile.adults || "";
   document.getElementById("pf-radius").value = profile.radiusMin || 60;
   document.getElementById("pf-cal").checked = !!profile.calendarOnPin;
@@ -1729,6 +1880,7 @@ document.getElementById("add-kid").addEventListener("click", () => {
 document.getElementById("save-profile").addEventListener("click", () => {
   readProfileForm();
   saveProfile(profile);
+  saveFamily(family);
   settings.hidden = true;
   render();
 });
@@ -1770,6 +1922,9 @@ document.getElementById("updated-text").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 normalizeEvergreen();
 buildEvergreenFilters();
+// Desbloqueo por URL (founder/unlock) y CTA visible si bloqueado
+readUnlockFromUrl();
+syncLockUI();
 render();
 renderNovedades();
 
@@ -1833,6 +1988,7 @@ if (useGeoBtn && "geolocation" in navigator) {
     }
   }
   btn.addEventListener("click", async () => {
+    if (!isUnlocked()) { openPaywall(); return; }
     const url = (typeof location !== "undefined" && location.href) ? location.href : "https://alvarogb.github.io/family-plans/";
     const ok = await copyText(url);
     if (ok) {
@@ -1846,6 +2002,27 @@ if (useGeoBtn && "geolocation" in navigator) {
       announce("No se pudo copiar el enlace");
     }
   });
+})();
+// Paywall wiring
+(function initPaywall(){
+  const closeBtn = document.getElementById("paywall-close");
+  if (closeBtn) closeBtn.addEventListener("click", closePaywall);
+  const applyBtn = document.getElementById("paywall-apply");
+  if (applyBtn) {
+    applyBtn.addEventListener("click", () => {
+      const val = (document.getElementById("paywall-input") || {}).value || "";
+      if (handleUnlockCode(val)) {
+        const inp = document.getElementById("paywall-input");
+        if (inp) inp.value = "";
+      }
+    });
+  }
+  const backdrop = document.getElementById("paywall");
+  if (backdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closePaywall();
+    });
+  }
 })();
 </script>
 </body>
