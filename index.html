@@ -430,13 +430,11 @@
           <label for="pf-title">Nombre del tablero</label>
           <input id="pf-title" type="text" placeholder="Planes familia"/>
         </div>
-        <div>
-          <label for="pf-base">Base / zona</label>
-          <input id="pf-base" type="text" placeholder="Ciudad o zona"/>
-        </div>
       </div>
-      <div class="form-actions" style="margin-top:8px">
+      <div class="form-actions" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px">
         <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
+        <p class="hint" style="margin:2px 0 0">Usamos tu ubicación para acercar planes (se guarda en este navegador).</p>
+        <p id="pf-base-display" class="hint" style="margin:0">Sin ubicación aún</p>
       </div>
       <div class="form-grid" style="margin-top:10px">
         <div>
@@ -1527,7 +1525,6 @@ function renderKidsEditor() {
 }
 function readProfileForm() {
   profile.title = document.getElementById("pf-title").value.trim() || "Planes familia";
-  profile.base = document.getElementById("pf-base").value.trim();
   profile.adults = document.getElementById("pf-adults").value.trim();
   profile.radiusMin = Number(document.getElementById("pf-radius").value) || 60;
   profile.calendarOnPin = document.getElementById("pf-cal").checked;
@@ -1539,10 +1536,11 @@ function readProfileForm() {
 }
 function fillProfileForm() {
   document.getElementById("pf-title").value = profile.title || "";
-  document.getElementById("pf-base").value = profile.base || "";
   document.getElementById("pf-adults").value = profile.adults || "";
   document.getElementById("pf-radius").value = profile.radiusMin || 60;
   document.getElementById("pf-cal").checked = !!profile.calendarOnPin;
+  const baseDisplay = document.getElementById("pf-base-display");
+  if (baseDisplay) baseDisplay.textContent = profile.base ? profile.base : "Sin ubicación aún";
   renderKidsEditor();
 }
 function render() {
@@ -1784,8 +1782,8 @@ if (useGeoBtn && "geolocation" in navigator) {
         }
         if (bestKey) {
           profile.base = DISPLAY_HOME_NAMES[bestKey] || bestKey;
-          const baseEl = document.getElementById("pf-base");
-          if (baseEl) baseEl.value = profile.base;
+          const baseDisplay = document.getElementById("pf-base-display");
+          if (baseDisplay) baseDisplay.textContent = profile.base || "Sin ubicación aún";
           saveProfile(profile);
           render();
         }
