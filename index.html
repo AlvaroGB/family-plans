@@ -86,6 +86,11 @@
   .header-inner { max-width: var(--max); margin: 0 auto; }
   .title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .hdr-btns { display: flex; align-items: center; gap: 8px; }
+  /* If a pay CTA (#buy-cta) exists, show it as a full-width row under the title.
+     It may initially be injected inside .hdr-btns; hide that placement to avoid flicker
+     and relocate it via a tiny script below. */
+  .header-inner #buy-cta { display: block; width: 100%; margin-top: 6px; }
+  .hdr-btns #buy-cta { display: none; }
   h1 { font-size: 1.2rem; margin: 0 0 2px; letter-spacing: -.02em; }
   .sub { font-size: .82rem; color: var(--muted); margin: 0; }
   /* Container for filter chips placed below sticky header */
@@ -175,7 +180,7 @@
   }
   /* Novedades strip */
   #novedades-wrap[hidden] { display: none !important; }
-  #novedades-wrap { margin: 0 0 8px; overflow: auto; }
+  #novedades-wrap { margin: 0 0 8px; overflow-x: hidden; overflow-y: auto; }
   /* Evergreen wrapper: ensure label margin doesn't collapse */
   #evergreen-wrap { margin: 0 0 8px; overflow: auto; }
   .novedades-box {
@@ -195,7 +200,7 @@
     text-transform: none; letter-spacing: .01em;
   }
   .nov-text {
-    flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0;
     color: var(--ink);
   }
   .nov-x {
@@ -375,6 +380,24 @@
     overflow: hidden; clip: rect(0, 0, 0, 0);
     white-space: nowrap; border: 0;
   }
+  /* Soft paywall (sheet) */
+  #paywall[hidden] { display: none !important; }
+  .paywall-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(18,32,30,.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; z-index: 50;
+  }
+  .paywall-modal {
+    width: min(560px, 92vw);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px;
+  }
 </style>
 </head>
 <body>
@@ -433,6 +456,10 @@
           <label for="pf-title">Nombre del tablero</label>
           <input id="pf-title" type="text" placeholder="Planes familia"/>
         </div>
+        <div>
+          <label for="pf-email">Email (opcional)</label>
+          <input id="pf-email" type="text" inputmode="email" placeholder="correo@ejemplo.com"/>
+        </div>
       </div>
       <div class="form-actions" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px">
         <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
@@ -472,7 +499,128 @@
     </div>
     <footer id="updated"><span id="updated-text"></span> · <button type="button" id="copy-link" class="link-btn" aria-label="Copiar enlace de esta página" title="Copiar enlace">Copiar enlace</button></footer>
   </div>
+  <!-- Paywall (soft gate) -->
+  <div id="paywall" class="paywall-backdrop" hidden>
+    <div class="paywall-modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
+      <h3 id="paywall-title" class="title" style="margin:0 0 8px">Planes familia</h3>
+      <p class="why" id="paywall-desc" style="margin:0 0 12px">Edición fundadora · <strong id="paywall-price">€4,99/mes</strong> · 1 familia Asturias</p>
+      <div class="actions" style="gap:8px;margin:0 0 10px">
+        <a class="btn primary" id="paywall-buy" href="#" target="_blank" rel="noopener">Comprar</a>
+      </div>
+      <div class="form-grid full" style="margin:8px 0 4px">
+        <div>
+          <label for="paywall-input">Código (FUNDADOR o token de pago)</label>
+          <input id="paywall-input" type="text" placeholder="FUNDADOR"/>
+        </div>
+      </div>
+      <div class="form-actions" style="gap:8px;margin:8px 0 4px">
+        <button type="button" class="btn ghost" id="paywall-apply">Usar código</button>
+        <button type="button" class="link-btn" id="paywall-close" style="margin-left:auto">Cerrar</button>
+      </div>
+    </div>
+  </div>
 <script>
+/* Config (Álvaro pega el enlace de Lemon aquí cuando lo tenga) */
+const FAMILY_PLANS_LEMON_URL = "#"; // TODO: Álvaro: pega aquí tu Lemon Payment Link
+const FAMILY_PLANS_PRICE_LABEL = "€4,99/mes";
+const UNLOCK_KEY = "family-plans-unlock-v1";
+const FAMILY_KEY = "family-plans-family-v1";
+const FOUNDER_CODE = "FUNDADOR";
+
+/* Desbloqueo local (soft gate) */
+function isUnlocked() {
+  try { return !!localStorage.getItem(UNLOCK_KEY); } catch { return false; }
+}
+function setUnlocked(token) {
+  try { localStorage.setItem(UNLOCK_KEY, token || "1"); } catch {}
+  syncLockUI();
+  closePaywall();
+  const live = document.getElementById("live");
+  if (live) live.textContent = "Acceso desbloqueado";
+}
+function readUnlockFromUrl() {
+  try {
+    const url = new URL(location.href);
+    const p = url.searchParams;
+    let touched = false;
+    if (p.get("founder") === "1") {
+      setUnlocked(FOUNDER_CODE);
+      touched = true;
+    }
+    const tok = p.get("unlock");
+    if (tok) { setUnlocked(tok); touched = true; }
+    if (touched) {
+      p.delete("founder"); p.delete("unlock");
+      const newSearch = p.toString();
+      const next = url.pathname + (newSearch ? "?" + newSearch : "") + url.hash;
+      try { history.replaceState({}, document.title, next); } catch {}
+    }
+  } catch {}
+}
+function openPaywall() {
+  const el = document.getElementById("paywall");
+  if (!el) return;
+  // Sync price and link each time
+  const price = document.getElementById("paywall-price");
+  if (price) price.textContent = FAMILY_PLANS_PRICE_LABEL;
+  const buy = document.getElementById("paywall-buy");
+  if (buy) buy.setAttribute("href", FAMILY_PLANS_LEMON_URL || "#");
+  el.hidden = false;
+}
+function closePaywall() {
+  const el = document.getElementById("paywall");
+  if (el) el.hidden = true;
+}
+function handleUnlockCode(raw) {
+  const v = (raw || "").trim();
+  if (!v) return false;
+  if (v.toUpperCase() === String(FOUNDER_CODE).toUpperCase()) {
+    setUnlocked("founder");
+    return true;
+  }
+  // Placeholder: aceptar token de pago pegado (validación real llegará con Lemon)
+  setUnlocked(v);
+  return true;
+}
+function syncLockUI() {
+  const hdr = document.querySelector(".hdr-btns");
+  if (!hdr) return;
+  let cta = document.getElementById("buy-cta");
+  if (isUnlocked()) {
+    if (cta) cta.remove();
+    return;
+  }
+  if (!cta) {
+    cta = document.createElement("a");
+    cta.id = "buy-cta";
+    cta.className = "icon-btn";
+    cta.href = FAMILY_PLANS_LEMON_URL || "#";
+    cta.target = "_blank";
+    cta.rel = "noopener";
+    cta.textContent = `Comprar · ${FAMILY_PLANS_PRICE_LABEL}`;
+    cta.addEventListener("click", (e) => {
+      // Si el enlace es placeholder, abre el sheet para introducir código
+      if (!FAMILY_PLANS_LEMON_URL || FAMILY_PLANS_LEMON_URL === "#") {
+        e.preventDefault();
+        openPaywall();
+      }
+    });
+    hdr.prepend(cta);
+  } else {
+    cta.textContent = `Comprar · ${FAMILY_PLANS_PRICE_LABEL}`;
+    cta.href = FAMILY_PLANS_LEMON_URL || "#";
+  }
+}
+
+// Familia (mínima): email opcional
+function loadFamily() {
+  try { return JSON.parse(localStorage.getItem(FAMILY_KEY) || "null") || { email: "" }; }
+  catch { return { email: "" }; }
+}
+function saveFamily(f) {
+  try { localStorage.setItem(FAMILY_KEY, JSON.stringify(f || { email: "" })); } catch {}
+}
+let family = loadFamily();
 const _now = new Date();
 const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
 const PIN_KEY = "family-plans-pinned-v1";
@@ -971,6 +1119,163 @@ const EVENTS = [
     link: "https://mercadoartesanoyecologico.com/",
     linkLabel: "Mercado A&E"
   },
+  {
+    id: "funbox-gijon-2026",
+    title: "Funbox parque hinchable",
+    start: "2026-08-28", end: "2026-10-04",
+    why: "Hinchables XXL; <2 gratis con adulto; ideal 2 y 4; buena ventana findes Sep/Oct",
+    place: "Parking Parque Hermanos Castro · Gijón",
+    locKey: "gijon",
+    priority: 85, type: "park", tags: [],
+    link: "https://funboxpark.com/es/parques-hinchables/gijon/",
+    linkLabel: "Funbox Gijón"
+  },
+  {
+    id: "agropec-2026",
+    title: "Agropec 40ª Feria del Campo",
+    start: "2026-09-25", end: "2026-09-27",
+    why: "Ponis, gallinas, conejos, cabras; paseo ferial toddler (sin vacuno 2026)",
+    place: "Recinto Ferial Luis Adaro · Gijón",
+    locKey: "gijon",
+    priority: 83, type: "festejo", tags: ["festejo"],
+    link: "https://www.lne.es/gijon/2026/08/28/recinto-ferial-gijones-prepara-agropec-133743598.html",
+    linkLabel: "LNE"
+  },
+  {
+    id: "peke-tube-lena-2026",
+    title: "PEKE TUBE musical YouTube Kids",
+    start: "2026-09-27", end: "2026-09-27",
+    times: "12:00",
+    why: "Musical infantil; cerca Mieres; desde ~12 meses",
+    place: "Teatro Vital Aza · Pola de Lena",
+    priority: 84, type: "ticket", tags: ["ticket"],
+    link: "https://www.dentralia.com/evento/cexbXpErjBY8C1U1NzWO",
+    linkLabel: "Entradas"
+  },
+  {
+    id: "ryr-juegos-tradicionales-2026",
+    title: "RyR Juegos tradicionales (gratis)",
+    start: "2026-09-18", end: "2026-09-19",
+    times: "Vie 17:30–20; Sáb 11:30–13:30 y 17:30–20",
+    why: "Gratis drop-in juegos de patio con peques",
+    place: "Plaza Laboral · Gijón",
+    locKey: "laboral",
+    priority: 82, type: "festejo", tags: ["festejo"],
+    link: "https://www.turismoasturias.es/agenda-de-asturias/-/calendarsuite/event/festival-rincones-y-recovecos-en-gijon/18265982/JXvXAPSD7JC0",
+    linkLabel: "RyR · Turismo"
+  },
+  {
+    id: "bebecuentos-lugones-2026-09-24",
+    title: "Bebécuentos Vamos a la cama",
+    start: "2026-09-24", end: "2026-09-24",
+    times: "18:00",
+    why: "0–3 años; inscripción 30 plazas",
+    place: "CPI Lugones",
+    priority: 80, type: "museo", tags: [],
+    link: "https://www.ayto-siero.es/agenda/",
+    linkLabel: "Agenda Siero"
+  },
+  {
+    id: "bigotes-caza-ratones-siero-2026",
+    title: "Bigotes Caza Ratones",
+    start: "2026-09-25", end: "2026-09-25",
+    times: "18:00",
+    why: "Cuentacuentos gratis con invitación Casa Cultura desde 16 Sep",
+    place: "Teatro Auditorio La Pola Siero",
+    priority: 72, type: "ticket", tags: ["ticket"],
+    link: "https://www.ayto-siero.es/agenda/",
+    linkLabel: "Agenda Siero"
+  },
+  {
+    id: "ryr-marceline-2026",
+    title: "RyR Marceline clown",
+    start: "2026-09-18", end: "2026-09-18",
+    times: "17:30/18:15/19:30",
+    why: "Clown 20 min desde 4 años",
+    place: "Laboral · carpa Francis",
+    locKey: "laboral",
+    priority: 70, type: "ticket", tags: ["ticket"],
+    link: "https://www.turismoasturias.es/agenda-de-asturias/-/calendarsuite/event/festival-rincones-y-recovecos-en-gijon/18265982/JXvXAPSD7JC0",
+    linkLabel: "Taquilla Rincones"
+  },
+  {
+    id: "ryr-rock-familiar-antipop-2026",
+    title: "RyR El rock familiar Anti-Pop",
+    start: "2026-09-19", end: "2026-09-19",
+    times: "19:15",
+    why: "Concierto gratis plaza; desde 5 años",
+    place: "Plaza Laboral",
+    locKey: "laboral",
+    priority: 68, type: "festejo", tags: ["festejo"],
+    link: "https://www.turismoasturias.es/agenda-de-asturias/-/calendarsuite/event/festival-rincones-y-recovecos-en-gijon/18265982/JXvXAPSD7JC0",
+    linkLabel: "RyR · Turismo"
+  },
+  {
+    id: "monte-deva-biodiversidad-2026-09-27",
+    title: "Yincana Misión Biodiversidad",
+    start: "2026-09-27", end: "2026-09-27",
+    times: "11:00",
+    why: "Gratis pistas naturaleza; plazas limitadas",
+    place: "CIN Monte Deva · Gijón",
+    locKey: "gijon",
+    priority: 74, type: "park", tags: [],
+    link: "https://montedeva.wordpress.com/",
+    linkLabel: "Monte Deva"
+  },
+  {
+    id: "veranes-divertete-2026",
+    title: "Diviértete en familia Veranes",
+    start: "2026-09-12", end: "2026-09-20",
+    why: "Búsqueda gratis dioses entre ruinas",
+    place: "Villa Romana de Veranes · Gijón",
+    priority: 65, type: "museo", tags: [],
+    link: "https://www.elcomercio.es/gijon/museos-arqueologicos-gijon-verano-influencia-romana-planes-20260710094453-nt.html",
+    linkLabel: "El Comercio"
+  },
+  {
+    id: "jorge-blass-flipar-2026",
+    title: "Jorge Blass — Flipar",
+    start: "2026-10-31", end: "2026-11-01",
+    times: "Sáb 20:00 · Dom 18:00",
+    why: "Magia familiar; preferir domingo 18:00",
+    place: "Teatro de la Laboral",
+    locKey: "laboral",
+    priority: 76, type: "ticket", tags: ["ticket"],
+    link: "https://entradas.turismoasturias.es/es/laboral-ciudad-de-la-cultura/jorge-blass/",
+    linkLabel: "Comprar entradas"
+  },
+  {
+    id: "muja-gigantes-dinosaurios-2026",
+    title: "MUJA — taller Gigantes o dinosaurios",
+    start: "2026-09-14", end: "2026-10-25",
+    why: "4–11 años; excavación 45 min",
+    place: "MUJA · Colunga",
+    locKey: "colunga",
+    priority: 73, type: "museo", tags: [],
+    link: "https://entradas.turismoasturias.es/es/museo-del-jurasico-de-asturias/gigantes-o-dinosaurios/",
+    linkLabel: "MUJA · Taller"
+  },
+  {
+    id: "mae-gijon-nov-2026",
+    title: "MAE Plaza Mayor Noviembre",
+    start: "2026-11-14", end: "2026-11-15",
+    why: "Paseo + merienda mid-Nov",
+    place: "Plaza Mayor · Gijón",
+    locKey: "gijon",
+    priority: 70, type: "festejo", tags: ["festejo"],
+    link: "https://mercadoartesanoyecologico.com/",
+    linkLabel: "Mercado A&E"
+  },
+  {
+    id: "derrame-rock-kids-langreo-2026",
+    title: "Derrame Rock Kids",
+    start: "2026-10-09", end: "2026-10-10",
+    why: "Entrada libre rock didáctico familiar; hora Kids TBA",
+    place: "Talleres del Conde · Langreo",
+    priority: 55, type: "festejo", tags: ["festejo"],
+    link: "https://www.lne.es/cuencas/2026/08/11/concierto-drogas-exposicion-mercadillo-musical-133269567.html",
+    linkLabel: "LNE"
+  },
 ];
 
 /* Evergreen pool for «Siempre disponibles» (software-ui PR #5) */
@@ -1193,7 +1498,11 @@ function loadPins() {
   try { return new Set(JSON.parse(localStorage.getItem(PIN_KEY) || "[]")); }
   catch { return new Set(); }
 }
-function savePins(set) { localStorage.setItem(PIN_KEY, JSON.stringify([...set])); }
+function savePins(set) {
+  // Hard guard: nunca persistir cambios de pins si está bloqueado
+  if (!isUnlocked()) return;
+  localStorage.setItem(PIN_KEY, JSON.stringify([...set]));
+}
 let pins = loadPins();
 
 function typeBadge(type) {
@@ -1408,6 +1717,7 @@ function renderEvergreen() {
   // Click: pedir fecha y alternar pin en esa fecha
   evergreenEl.querySelectorAll("[data-evergreen]").forEach(btn => {
     btn.addEventListener("click", () => {
+      if (!isUnlocked()) { openPaywall(); return; }
       const egId = btn.getAttribute("data-evergreen");
       const def = btn.getAttribute("data-default") || ymd(TODAY);
       const pinnedDates = getEvergreenPinnedDates(egId);
@@ -1479,54 +1789,9 @@ function applyDistance(items) {
     return d <= limitKm;
   });
 }
-function bindPins(root) {
-  root.querySelectorAll("[data-pin]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-pin");
-      const ev = EVENTS.find(e => e.id === id);
-      const wasPinned = pins.has(id);
-      const nowPinned = !wasPinned;
-      // Optimistic UI: update button and card immediately for instant feedback
-      btn.setAttribute("aria-pressed", nowPinned ? "true" : "false");
-      btn.textContent = nowPinned ? "Fijado" : "Fijar";
-      if (ev) {
-        const ariaLabel = nowPinned ? ("Quitar «" + tpl(ev.title) + "» de Fijados") : ("Fijar «" + tpl(ev.title) + "»");
-        const titleAttr = nowPinned ? "Quitar de Fijados" : "Fijar";
-        btn.setAttribute("aria-label", ariaLabel);
-        btn.setAttribute("title", titleAttr);
-      }
-      const card = btn.closest(".card");
-      if (card) card.classList.toggle("pinned-card", nowPinned);
-      // Ensure Fijados section becomes visible immediately on first pin
-      if (nowPinned) {
-        const wrap = document.getElementById("pinned-wrap");
-        if (wrap) wrap.hidden = false;
-      }
-      // Update data and optionally open Calendar (still within user gesture)
-      if (wasPinned) pins.delete(id);
-      else {
-        pins.add(id);
-        if (profile.calendarOnPin && ev) {
-          openGoogleCalendar(ev);
-        }
-      }
-      savePins(pins);
-      // aria-live polite confirmation (short)
-      const live = document.getElementById("live");
-      if (live && ev) {
-        live.textContent = (nowPinned ? "Fijado: " : "Quitado: ") + tpl(ev.title);
-      }
-      render();
-      // After pinning, nudge the Fijados section into view so the user sees it
-      if (nowPinned) {
-        const wrap = document.getElementById("pinned-wrap");
-        if (wrap) {
-          try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
-        }
-      }
-    });
-  });
-}
+// Obsoleto: los manejadores de «Fijar» ahora usan delegación global para evitar
+// listeners duplicados en cada render() y asegurar un único punto de control.
+function bindPins(_root) { /* no-op; handled by delegated click listener */ }
 function renderKidsEditor() {
   kidsEditor.innerHTML = profile.kids.map((k, i) => `
     <div class="kid-row" data-kid-i="${i}">
@@ -1554,6 +1819,10 @@ function readProfileForm() {
   profile.adults = document.getElementById("pf-adults").value.trim();
   profile.radiusMin = Number(document.getElementById("pf-radius").value) || 60;
   profile.calendarOnPin = document.getElementById("pf-cal").checked;
+  const emailEl = document.getElementById("pf-email");
+  if (emailEl) {
+    family.email = emailEl.value.trim();
+  }
   profile.kids = [...kidsEditor.querySelectorAll(".kid-row")].map(row => ({
     name: row.querySelector('[data-k="name"]').value.trim(),
     birthYear: row.querySelector('[data-k="birthYear"]').value ? Number(row.querySelector('[data-k="birthYear"]').value) : null
@@ -1562,6 +1831,8 @@ function readProfileForm() {
 }
 function fillProfileForm() {
   document.getElementById("pf-title").value = profile.title || "";
+  const emailEl = document.getElementById("pf-email");
+  if (emailEl) emailEl.value = (family && family.email) || "";
   document.getElementById("pf-adults").value = profile.adults || "";
   document.getElementById("pf-radius").value = profile.radiusMin || 60;
   document.getElementById("pf-cal").checked = !!profile.calendarOnPin;
@@ -1571,6 +1842,9 @@ function fillProfileForm() {
 }
 function render() {
   fillHeader();
+  // Hard guard extra: si está bloqueado, restablecer pins desde localStorage por si
+  // algún handler viejo hubiese mutado el Set en memoria sin persistir.
+  if (!isUnlocked()) pins = loadPins();
   const timeItems = filtered();
   const items = applyDistance(timeItems);
   // Resolve pinned items:
@@ -1752,6 +2026,7 @@ document.getElementById("add-kid").addEventListener("click", () => {
 document.getElementById("save-profile").addEventListener("click", () => {
   readProfileForm();
   saveProfile(profile);
+  saveFamily(family);
   settings.hidden = true;
   render();
 });
@@ -1793,8 +2068,82 @@ document.getElementById("updated-text").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 normalizeEvergreen();
 buildEvergreenFilters();
+// Desbloqueo por URL (founder/unlock) y CTA visible si bloqueado
+readUnlockFromUrl();
+syncLockUI();
 render();
 renderNovedades();
+
+// Delegación global para botones «Fijar» en cards de eventos.
+// Evita apilar listeners en cada render() y centraliza el soft-gate.
+(function initPinDelegation(){
+  document.addEventListener("click", (evt) => {
+    const btn = evt.target && (evt.target.closest ? evt.target.closest("[data-pin]") : null);
+    if (!btn) return;
+    // Soft-gate: si está bloqueado, abrir paywall y salir sin mutar nada
+    if (!isUnlocked()) { openPaywall(); return; }
+    const id = btn.getAttribute("data-pin");
+    const item = EVENTS.find(e => e.id === id);
+    const wasPinned = pins.has(id);
+    const nowPinned = !wasPinned;
+    // Feedback instantáneo en el propio botón y card
+    btn.setAttribute("aria-pressed", nowPinned ? "true" : "false");
+    btn.textContent = nowPinned ? "Fijado" : "Fijar";
+    if (item) {
+      const ariaLabel = nowPinned ? ("Quitar «" + tpl(item.title) + "» de Fijados") : ("Fijar «" + tpl(item.title) + "»");
+      const titleAttr = nowPinned ? "Quitar de Fijados" : "Fijar";
+      btn.setAttribute("aria-label", ariaLabel);
+      btn.setAttribute("title", titleAttr);
+    }
+    const card = btn.closest(".card");
+    if (card) card.classList.toggle("pinned-card", nowPinned);
+    if (nowPinned) {
+      const wrap = document.getElementById("pinned-wrap");
+      if (wrap) wrap.hidden = false;
+    }
+    // Mutación real + persistencia segura
+    if (wasPinned) pins.delete(id);
+    else {
+      pins.add(id);
+      if (profile.calendarOnPin && item) {
+        openGoogleCalendar(item);
+      }
+    }
+    savePins(pins);
+    const live = document.getElementById("live");
+    if (live && item) {
+      live.textContent = (nowPinned ? "Fijado: " : "Quitado: ") + tpl(item.title);
+    }
+    render();
+    if (nowPinned) {
+      const wrap = document.getElementById("pinned-wrap");
+      if (wrap) {
+        try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
+      }
+    }
+  });
+})();
+
+// Ensure a possible buy CTA (#buy-cta) sits as a second full-width row under the title.
+// This keeps the top row as: title | Oscuro + Perfil, and moves the CTA below.
+(function ensureBuyCtaPlacement(){
+  const host = document.querySelector(".header-inner");
+  if (!host) return;
+  const titleRow = host.querySelector(".title-row");
+  if (!titleRow) return;
+  function moveIfPresent() {
+    const cta = document.getElementById("buy-cta");
+    if (!cta) return;
+    // Re-parent directly under .header-inner right after .title-row
+    if (cta.parentElement !== host || cta.previousElementSibling !== titleRow) {
+      try { host.insertBefore(cta, titleRow.nextSibling); } catch {}
+    }
+  }
+  moveIfPresent();
+  // In case locking/unlocking injects/removes the CTA later, observe and re-place.
+  const mo = new MutationObserver(() => moveIfPresent());
+  mo.observe(host, { childList: true, subtree: true });
+})();
 
 // Geolocation button: set base to nearest known city
 const useGeoBtn = document.getElementById("use-geo");
@@ -1856,6 +2205,7 @@ if (useGeoBtn && "geolocation" in navigator) {
     }
   }
   btn.addEventListener("click", async () => {
+    if (!isUnlocked()) { openPaywall(); return; }
     const url = (typeof location !== "undefined" && location.href) ? location.href : "https://alvarogb.github.io/family-plans/";
     const ok = await copyText(url);
     if (ok) {
@@ -1869,6 +2219,27 @@ if (useGeoBtn && "geolocation" in navigator) {
       announce("No se pudo copiar el enlace");
     }
   });
+})();
+// Paywall wiring
+(function initPaywall(){
+  const closeBtn = document.getElementById("paywall-close");
+  if (closeBtn) closeBtn.addEventListener("click", closePaywall);
+  const applyBtn = document.getElementById("paywall-apply");
+  if (applyBtn) {
+    applyBtn.addEventListener("click", () => {
+      const val = (document.getElementById("paywall-input") || {}).value || "";
+      if (handleUnlockCode(val)) {
+        const inp = document.getElementById("paywall-input");
+        if (inp) inp.value = "";
+      }
+    });
+  }
+  const backdrop = document.getElementById("paywall");
+  if (backdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closePaywall();
+    });
+  }
 })();
 </script>
 </body>
