@@ -299,6 +299,17 @@
   #filter-empty { display: none; }
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
+  /* Small link-style button for footer actions */
+  .link-btn {
+    border: none;
+    background: transparent;
+    color: var(--teal);
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: .82rem;
+    padding: 0;
+  }
   /* (Removed timeline grouping UI; list is flat chronological cards) */
 
   /* Tighter, more compact header + chips on small phones */
@@ -441,6 +452,9 @@
       <div id="evergreen"></div>
     </div>
     <footer id="updated"></footer>
+    <footer>
+      <button id="copy-link" type="button" class="link-btn" aria-label="Copiar enlace de esta página" title="Copiar enlace">Copiar enlace</button>
+    </footer>
   </div>
 <script>
 const _now = new Date();
@@ -1720,6 +1734,47 @@ if (useGeoBtn && "geolocation" in navigator) {
   useGeoBtn.textContent = "Ubicación no disponible";
 }
 
+// Share affordance: copy current page URL with brief confirmation
+(function initCopyLink(){
+  const btn = document.getElementById("copy-link");
+  if (!btn) return;
+  const DEFAULT_LABEL = "Copiar enlace";
+  function announce(msg) {
+    const live = document.getElementById("live");
+    if (live) live.textContent = msg;
+  }
+  async function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  btn.addEventListener("click", async () => {
+    const url = (typeof location !== "undefined" && location.href) ? location.href : "https://alvarogb.github.io/family-plans/";
+    const ok = await copyText(url);
+    if (ok) {
+      const success = "¡Enlace copiado!";
+      // Temporarily flash button text
+      const prev = btn.textContent;
+      btn.textContent = success;
+      announce(success);
+      setTimeout(() => { btn.textContent = prev || DEFAULT_LABEL; }, 1800);
+    } else {
+      announce("No se pudo copiar el enlace");
+    }
+  });
+})();
 </script>
 </body>
 </html>
