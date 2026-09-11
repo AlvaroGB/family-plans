@@ -1763,6 +1763,9 @@ function useCustomRange() {
 }
 fromEl.addEventListener("change", useCustomRange);
 toEl.addEventListener("change", useCustomRange);
+// On mobile, input fires as the date picker updates; commit custom ranges on input too
+fromEl.addEventListener("input", useCustomRange);
+toEl.addEventListener("input", useCustomRange);
 
 // Perfil: colapsado por defecto. No abrir automáticamente en primera visita.
 
