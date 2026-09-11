@@ -1476,7 +1476,11 @@ function loadPins() {
   try { return new Set(JSON.parse(localStorage.getItem(PIN_KEY) || "[]")); }
   catch { return new Set(); }
 }
-function savePins(set) { localStorage.setItem(PIN_KEY, JSON.stringify([...set])); }
+function savePins(set) {
+  // Hard guard: nunca persistir cambios de pins si está bloqueado
+  if (!isUnlocked()) return;
+  localStorage.setItem(PIN_KEY, JSON.stringify([...set]));
+}
 let pins = loadPins();
 
 function typeBadge(type) {
@@ -1763,55 +1767,9 @@ function applyDistance(items) {
     return d <= limitKm;
   });
 }
-function bindPins(root) {
-  root.querySelectorAll("[data-pin]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (!isUnlocked()) { openPaywall(); return; }
-      const id = btn.getAttribute("data-pin");
-      const ev = EVENTS.find(e => e.id === id);
-      const wasPinned = pins.has(id);
-      const nowPinned = !wasPinned;
-      // Optimistic UI: update button and card immediately for instant feedback
-      btn.setAttribute("aria-pressed", nowPinned ? "true" : "false");
-      btn.textContent = nowPinned ? "Fijado" : "Fijar";
-      if (ev) {
-        const ariaLabel = nowPinned ? ("Quitar «" + tpl(ev.title) + "» de Fijados") : ("Fijar «" + tpl(ev.title) + "»");
-        const titleAttr = nowPinned ? "Quitar de Fijados" : "Fijar";
-        btn.setAttribute("aria-label", ariaLabel);
-        btn.setAttribute("title", titleAttr);
-      }
-      const card = btn.closest(".card");
-      if (card) card.classList.toggle("pinned-card", nowPinned);
-      // Ensure Fijados section becomes visible immediately on first pin
-      if (nowPinned) {
-        const wrap = document.getElementById("pinned-wrap");
-        if (wrap) wrap.hidden = false;
-      }
-      // Update data and optionally open Calendar (still within user gesture)
-      if (wasPinned) pins.delete(id);
-      else {
-        pins.add(id);
-        if (profile.calendarOnPin && ev) {
-          openGoogleCalendar(ev);
-        }
-      }
-      savePins(pins);
-      // aria-live polite confirmation (short)
-      const live = document.getElementById("live");
-      if (live && ev) {
-        live.textContent = (nowPinned ? "Fijado: " : "Quitado: ") + tpl(ev.title);
-      }
-      render();
-      // After pinning, nudge the Fijados section into view so the user sees it
-      if (nowPinned) {
-        const wrap = document.getElementById("pinned-wrap");
-        if (wrap) {
-          try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
-        }
-      }
-    });
-  });
-}
+// Obsoleto: los manejadores de «Fijar» ahora usan delegación global para evitar
+// listeners duplicados en cada render() y asegurar un único punto de control.
+function bindPins(_root) { /* no-op; handled by delegated click listener */ }
 function renderKidsEditor() {
   kidsEditor.innerHTML = profile.kids.map((k, i) => `
     <div class="kid-row" data-kid-i="${i}">
@@ -1862,6 +1820,9 @@ function fillProfileForm() {
 }
 function render() {
   fillHeader();
+  // Hard guard extra: si está bloqueado, restablecer pins desde localStorage por si
+  // algún handler viejo hubiese mutado el Set en memoria sin persistir.
+  if (!isUnlocked()) pins = loadPins();
   const timeItems = filtered();
   const items = applyDistance(timeItems);
   // Resolve pinned items:
@@ -2090,6 +2051,56 @@ readUnlockFromUrl();
 syncLockUI();
 render();
 renderNovedades();
+
+// Delegación global para botones «Fijar» en cards de eventos.
+// Evita apilar listeners en cada render() y centraliza el soft-gate.
+(function initPinDelegation(){
+  document.addEventListener("click", (evt) => {
+    const btn = evt.target && (evt.target.closest ? evt.target.closest("[data-pin]") : null);
+    if (!btn) return;
+    // Soft-gate: si está bloqueado, abrir paywall y salir sin mutar nada
+    if (!isUnlocked()) { openPaywall(); return; }
+    const id = btn.getAttribute("data-pin");
+    const item = EVENTS.find(e => e.id === id);
+    const wasPinned = pins.has(id);
+    const nowPinned = !wasPinned;
+    // Feedback instantáneo en el propio botón y card
+    btn.setAttribute("aria-pressed", nowPinned ? "true" : "false");
+    btn.textContent = nowPinned ? "Fijado" : "Fijar";
+    if (item) {
+      const ariaLabel = nowPinned ? ("Quitar «" + tpl(item.title) + "» de Fijados") : ("Fijar «" + tpl(item.title) + "»");
+      const titleAttr = nowPinned ? "Quitar de Fijados" : "Fijar";
+      btn.setAttribute("aria-label", ariaLabel);
+      btn.setAttribute("title", titleAttr);
+    }
+    const card = btn.closest(".card");
+    if (card) card.classList.toggle("pinned-card", nowPinned);
+    if (nowPinned) {
+      const wrap = document.getElementById("pinned-wrap");
+      if (wrap) wrap.hidden = false;
+    }
+    // Mutación real + persistencia segura
+    if (wasPinned) pins.delete(id);
+    else {
+      pins.add(id);
+      if (profile.calendarOnPin && item) {
+        openGoogleCalendar(item);
+      }
+    }
+    savePins(pins);
+    const live = document.getElementById("live");
+    if (live && item) {
+      live.textContent = (nowPinned ? "Fijado: " : "Quitado: ") + tpl(item.title);
+    }
+    render();
+    if (nowPinned) {
+      const wrap = document.getElementById("pinned-wrap");
+      if (wrap) {
+        try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
+      }
+    }
+  });
+})();
 
 // Geolocation button: set base to nearest known city
 const useGeoBtn = document.getElementById("use-geo");
