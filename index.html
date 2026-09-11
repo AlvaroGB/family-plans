@@ -93,6 +93,8 @@
   .hdr-btns { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 1.2rem; margin: 0 0 2px; letter-spacing: -.02em; }
   .sub { font-size: .82rem; color: var(--muted); margin: 0; }
+  /* Container for filter chips placed below sticky header */
+  .chips-bar { margin: 0 0 8px; }
   .icon-btn {
     border: 1px solid var(--line); background: #fff; border-radius: 999px;
     min-height: 40px; padding: 8px 12px; font-size: .82rem; font-weight: 700;
@@ -208,6 +210,8 @@
   @media (max-width: 719px) {
     #custom-inline { display: none; }
     #custom-inline.open { display: flex; }
+    /* Phone: allow chips to wrap, not scroll-only */
+    .chips { flex-wrap: wrap; overflow-x: visible; }
     /* Keep chips visible on small phones (allow wrap/scroll) */
     /* .chips { display: none; } */
   }
@@ -327,13 +331,13 @@
   }
   /* (Removed timeline grouping UI; list is flat chronological cards) */
 
-  /* Tighter, more compact header + chips on small phones */
+  /* Tighter, more compact header; increase chip tap targets on small phones */
   @media (max-width: 480px) {
     header { margin: -12px -14px 8px; padding: calc(8px + var(--safe-t)) 10px 6px; }
     h1 { font-size: 1.05rem; line-height: 1.2; }
     /* Collapse secondary line to keep header slim */
     .sub { display: none; }
-    .chip { min-height: 32px; padding: 6px 10px; font-size: .82rem; }
+    .chip { min-height: 40px; padding: 8px 12px; font-size: .9rem; }
     .icon-btn { min-height: 36px; padding: 6px 10px; font-size: .8rem; }
   }
 
@@ -342,7 +346,8 @@
     .wrap { padding: 20px 24px 40px; }
     header { margin: -20px -24px 18px; padding: calc(18px + var(--safe-t)) 24px 12px; }
     h1 { font-size: 1.45rem; }
-    .chips { flex-wrap: wrap; overflow: visible; }
+    /* Desktop: keep chips on one row */
+    .chips { flex-wrap: nowrap; overflow: visible; }
     /* Desktop: show free-range dates inline; the toggle chip is not needed */
     #custom-inline { display: flex !important; }
     #date-toggle { display: none; }
@@ -390,25 +395,27 @@
             <button type="button" class="icon-btn" id="settings-toggle">Perfil</button>
           </div>
         </div>
-        <div class="chips" role="toolbar" aria-label="Filtros">
-          <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
-          <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
-          <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
-          <span id="month-chips" aria-label="Meses"></span>
-          <button type="button" class="chip" id="date-toggle" aria-expanded="false" aria-controls="custom-inline" title="Rango libre">Fechas</button>
-          <div id="custom-inline" title="Rango libre">
-            <div class="di">
-              <label for="from">Desde</label>
-              <input type="date" id="from"/>
-            </div>
-            <div class="di">
-              <label for="to">Hasta</label>
-              <input type="date" id="to"/>
-            </div>
+      </div>
+    </header>
+    <div class="chips-bar">
+      <div class="chips" role="toolbar" aria-label="Filtros">
+        <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
+        <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
+        <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
+        <span id="month-chips" aria-label="Meses"></span>
+        <button type="button" class="chip" id="date-toggle" aria-expanded="false" aria-controls="custom-inline" title="Rango libre">Fechas</button>
+        <div id="custom-inline" title="Rango libre">
+          <div class="di">
+            <label for="from">Desde</label>
+            <input type="date" id="from"/>
+          </div>
+          <div class="di">
+            <label for="to">Hasta</label>
+            <input type="date" id="to"/>
           </div>
         </div>
       </div>
-    </header>
+    </div>
     <!-- Novedades strip -->
     <div id="novedades-wrap" hidden>
       <div class="section-label" style="margin-top:4px">Novedades</div>
