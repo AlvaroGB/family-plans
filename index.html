@@ -299,6 +299,17 @@
   #filter-empty { display: none; }
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
+  /* Small link-style button for footer actions */
+  .link-btn {
+    border: none;
+    background: transparent;
+    color: var(--teal);
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: .82rem;
+    padding: 0;
+  }
   /* (Removed timeline grouping UI; list is flat chronological cards) */
 
   /* Tighter, more compact header + chips on small phones */
@@ -434,7 +445,7 @@
  
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
-    <p id="filter-empty" class="empty">Nada en ese tramo. Prueba otro o vuelve a Importante.</p>
+    <p id="filter-empty" class="empty">Sin planes en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio en Perfil.</p>
     <!-- Evergreen pool (inventory-owned). Renders when window.EVERGREEN exists -->
     <div id="evergreen-wrap">
       <div class="section-label">Siempre disponibles</div>
@@ -1719,6 +1730,61 @@ if (useGeoBtn && "geolocation" in navigator) {
   useGeoBtn.disabled = true;
   useGeoBtn.textContent = "Ubicación no disponible";
 }
+
+// Share affordance: copy current page URL with brief confirmation
+(function initCopyLink(){
+  let btn = document.getElementById("copy-link");
+  if (!btn) {
+    const host = document.getElementById("updated");
+    if (!host) return;
+    // Insert a separator and the inline button into the existing footer
+    host.appendChild(document.createTextNode(" · "));
+    btn = document.createElement("button");
+    btn.id = "copy-link";
+    btn.type = "button";
+    btn.className = "link-btn";
+    btn.setAttribute("aria-label", "Copiar enlace de esta página");
+    btn.title = "Copiar enlace";
+    btn.textContent = "Copiar enlace";
+    host.appendChild(btn);
+  }
+  const DEFAULT_LABEL = "Copiar enlace";
+  function announce(msg) {
+    const live = document.getElementById("live");
+    if (live) live.textContent = msg;
+  }
+  async function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  btn.addEventListener("click", async () => {
+    const url = (typeof location !== "undefined" && location.href) ? location.href : "https://alvarogb.github.io/family-plans/";
+    const ok = await copyText(url);
+    if (ok) {
+      const success = "¡Enlace copiado!";
+      // Temporarily flash button text
+      const prev = btn.textContent;
+      btn.textContent = success;
+      announce(success);
+      setTimeout(() => { btn.textContent = prev || DEFAULT_LABEL; }, 1800);
+    } else {
+      announce("No se pudo copiar el enlace");
+    }
+  });
+})();
 </script>
 </body>
 </html>
