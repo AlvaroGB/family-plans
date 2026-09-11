@@ -317,7 +317,6 @@
   }
   .empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: .95rem; }
   footer { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 22px; padding: 0 8px; }
-  #filter-empty { display: none; }
   #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
   /* Small link-style button for footer actions */
@@ -1613,7 +1612,8 @@ function render() {
   // Flat chronological list: sort by start date then priority (desc)
   rest.sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   list.innerHTML = rest.map(cardHTML).join("");
-  empty.style.display = rest.length ? "none" : "block";
+  // Prefer hidden attribute over inline display styles
+  empty.hidden = rest.length > 0;
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
   bindPins(document);
@@ -1763,6 +1763,9 @@ function useCustomRange() {
 }
 fromEl.addEventListener("change", useCustomRange);
 toEl.addEventListener("change", useCustomRange);
+// On mobile, input fires as the date picker updates; commit custom ranges on input too
+fromEl.addEventListener("input", useCustomRange);
+toEl.addEventListener("input", useCustomRange);
 
 // Perfil: colapsado por defecto. No abrir automáticamente en primera visita.
 
