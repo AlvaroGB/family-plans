@@ -208,8 +208,8 @@
   @media (max-width: 719px) {
     #custom-inline { display: none; }
     #custom-inline.open { display: flex; }
-    /* Hide chips row so the first hit after sticky header is content */
-    .chips { display: none; }
+    /* Keep chips visible on small phones (allow wrap/scroll) */
+    /* .chips { display: none; } */
   }
   #custom-inline .di {
     display: flex; flex-direction: column; gap: 4px; min-width: 9.5rem;
@@ -469,7 +469,7 @@
       <div id="evergreen-filters" class="eg-chips" aria-label="Filtrar siempre disponibles" hidden></div>
       <div id="evergreen"></div>
     </div>
-    <footer id="updated"></footer>
+    <footer id="updated"><span id="updated-text"></span> · <button type="button" id="copy-link" class="link-btn" aria-label="Copiar enlace de esta página" title="Copiar enlace">Copiar enlace</button></footer>
   </div>
 <script>
 const _now = new Date();
@@ -1761,7 +1761,7 @@ toEl.addEventListener("change", useCustomRange);
 
 fromEl.value = ymd(TODAY);
 toEl.value = ymd(addDays(TODAY, 14));
-document.getElementById("updated").textContent =
+document.getElementById("updated-text").textContent =
   "Perfil y fijados se guardan en este navegador · " + new Date().toLocaleDateString("es-ES");
 normalizeEvergreen();
 buildEvergreenFilters();
@@ -1804,20 +1804,7 @@ if (useGeoBtn && "geolocation" in navigator) {
 // Share affordance: copy current page URL with brief confirmation
 (function initCopyLink(){
   let btn = document.getElementById("copy-link");
-  if (!btn) {
-    const host = document.getElementById("updated");
-    if (!host) return;
-    // Insert a separator and the inline button into the existing footer
-    host.appendChild(document.createTextNode(" · "));
-    btn = document.createElement("button");
-    btn.id = "copy-link";
-    btn.type = "button";
-    btn.className = "link-btn";
-    btn.setAttribute("aria-label", "Copiar enlace de esta página");
-    btn.title = "Copiar enlace";
-    btn.textContent = "Copiar enlace";
-    host.appendChild(btn);
-  }
+  if (!btn) return;
   const DEFAULT_LABEL = "Copiar enlace";
   function announce(msg) {
     const live = document.getElementById("live");
