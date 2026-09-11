@@ -208,8 +208,8 @@
   @media (max-width: 719px) {
     #custom-inline { display: none; }
     #custom-inline.open { display: flex; }
-    /* Hide chips row so the first hit after sticky header is content */
-    .chips { display: none; }
+    /* Keep chips visible on small phones (allow wrap/scroll) */
+    /* .chips { display: none; } */
   }
   #custom-inline .di {
     display: flex; flex-direction: column; gap: 4px; min-width: 9.5rem;
