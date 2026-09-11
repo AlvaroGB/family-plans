@@ -1613,7 +1613,7 @@ function render() {
   // Flat chronological list: sort by start date then priority (desc)
   rest.sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   list.innerHTML = rest.map(cardHTML).join("");
-  empty.style.display = (rest.length || pinnedItems.length) ? "none" : "block";
+  empty.style.display = rest.length ? "none" : "block";
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
   bindPins(document);
