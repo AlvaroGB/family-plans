@@ -193,6 +193,8 @@
   .nov-row {
     display: flex; align-items: center; gap: 8px;
     min-height: 26px; font-size: .9rem;
+    /* Allow grid item to shrink within the card so ellipsis works at ~390px */
+    min-width: 0; max-width: 100%;
   }
   .nov-date {
     flex: 0 0 auto; min-width: 3.6rem;
