@@ -175,7 +175,7 @@
   }
   /* Novedades strip */
   #novedades-wrap[hidden] { display: none !important; }
-  #novedades-wrap { margin: 0 0 8px; overflow: auto; }
+  #novedades-wrap { margin: 0 0 8px; overflow-x: hidden; overflow-y: auto; }
   /* Evergreen wrapper: ensure label margin doesn't collapse */
   #evergreen-wrap { margin: 0 0 8px; overflow: auto; }
   .novedades-box {
@@ -196,6 +196,7 @@
   }
   .nov-text {
     flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    min-width: 0; /* allow flex item to shrink so ellipsis works; prevents horizontal overflow */
     color: var(--ink);
   }
   .nov-x {
@@ -333,6 +334,11 @@
     h1 { font-size: 1.05rem; line-height: 1.2; }
     /* Collapse secondary line to keep header slim */
     .sub { display: none; }
+    /* Allow header buttons row to wrap below the title when space is tight (prevents overflow with locked CTA) */
+    .title-row { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
+    .hdr-btns { flex-wrap: wrap; justify-content: flex-end; }
+    /* Keep Oscuro + Perfil on the top row; push Comprar below the title row */
+    #buy-cta { order: 99; flex: 1 1 100%; width: 100%; }
     .chip { min-height: 40px; padding: 8px 12px; font-size: .9rem; }
     .icon-btn { min-height: 36px; padding: 6px 10px; font-size: .8rem; }
   }
