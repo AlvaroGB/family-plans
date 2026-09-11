@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Simple, legible at 16px: calendar with heart -->
+  <!-- Background page -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff8f1"/>
+      <stop offset="1" stop-color="#fefce8"/>
+    </linearGradient>
+  </defs>
+  <!-- Calendar frame -->
+  <rect x="6" y="10" width="52" height="48" rx="10" fill="url(#g)" stroke="#0f766e" stroke-width="4"/>
+  <!-- Top bar -->
+  <rect x="6" y="10" width="52" height="14" rx="8" fill="#0f766e"/>
+  <!-- Rings -->
+  <rect x="18" y="4" width="6" height="12" rx="3" fill="#0f766e"/>
+  <rect x="40" y="4" width="6" height="12" rx="3" fill="#0f766e"/>
+  <!-- Heart (family/warmth) -->
+  <path d="M32 46c-6-4.8-14-9.7-14-16.2C18 26 21.2 23 25 23c2.4 0 4.6 1.2 6 3.1C32.4 24.2 34.6 23 37 23c3.8 0 7 3 7 6.8C44 36.3 36 41.2 32 46z"
+        fill="#f97316"/>
+</svg>
+
