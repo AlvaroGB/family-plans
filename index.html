@@ -493,6 +493,10 @@
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
   <p id="filter-empty" class="empty">Sin planes cerca de ti en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio o usa tu ubicación en Perfil.</p>
+  <p id="zone-empty" class="empty" hidden>
+    Aún no hay planes cerca de ti — avísanos y priorizamos tu zona.
+    <a id="zone-mailto" class="link-btn" href="#" title="Escribir email">Avisadnos</a>
+  </p>
     <!-- Evergreen pool (inventory-owned). Renders when window.EVERGREEN exists -->
     <div id="evergreen-wrap">
       <div class="section-label">Siempre disponibles</div>
@@ -762,6 +766,15 @@ const DISPLAY_HOME_NAMES = {
   santander: "Santander",
   pamplona: "Pamplona"
 };
+// Huella actual de inventario (Asturias). Mantener simple y honesto:
+// Si el perfil base no está en estas ciudades, tratamos la zona como «fuera de huella».
+const INVENTORY_FOOTPRINT_KEYS = new Set([
+  "gijon", "oviedo", "mieres", "villaviciosa", "colunga", "peon", "arroes"
+]);
+function isInInventoryFootprint() {
+  const key = norm(profile.base);
+  return INVENTORY_FOOTPRINT_KEYS.has(key);
+}
 const PLACES = {
   "laboral": { lat: 43.532, lng: -5.628 },
   "gijon": HOME_CITIES["gijon"],
@@ -1632,6 +1645,7 @@ const list = document.getElementById("list");
 const pinnedEl = document.getElementById("pinned");
 const pinnedWrap = document.getElementById("pinned-wrap");
 const empty = document.getElementById("filter-empty");
+const zoneEmpty = document.getElementById("zone-empty");
 const settings = document.getElementById("settings");
 const fromEl = document.getElementById("from");
 const toEl = document.getElementById("to");
@@ -1642,6 +1656,7 @@ const monthChips = document.getElementById("month-chips");
 const dateToggle = document.getElementById("date-toggle");
 const evergreenEl = document.getElementById("evergreen");
 const evergreenFilters = document.getElementById("evergreen-filters");
+const evergreenWrap = document.getElementById("evergreen-wrap");
 let egFilter = "all";
 const novedadesWrap = document.getElementById("novedades-wrap");
 const novedadesList = document.getElementById("novedades");
@@ -1830,10 +1845,14 @@ function filtered() {
 function applyDistance(items) {
   const home = getHomeCoords();
   if (!home) return items; // if unknown base, don't filter by distance
+  const inFootprint = isInInventoryFootprint();
   const limitKm = Math.max(1, Number(profile.radiusMin) || 60); // approx: 1 km ≈ 1 min (60 km/h)
   return items.filter(ev => {
+    // Fuera de huella: no «inventar» cercanía con useBase ni con eventos sin coordenadas
+    if (!inFootprint && ev.useBase) return false;
     const ec = getEventCoords(ev, home);
-    if (!ec) return true; // keep if unknown location
+    if (!inFootprint && !ec) return false; // fuera de huella y sin coords → excluir
+    if (!ec) return true; // dentro de huella: conservar si ubicación desconocida
     const d = haversineKm(home, ec);
     return d <= limitKm;
   });
@@ -1954,11 +1973,39 @@ function render() {
   rest.sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   list.innerHTML = rest.map(cardHTML).join("");
   // Prefer hidden attribute over inline display styles
-  empty.hidden = rest.length > 0;
+  const inFootprint = isInInventoryFootprint();
+  const showGenericEmpty = rest.length === 0 && inFootprint;
+  const showZoneEmpty = rest.length === 0 && !inFootprint;
+  empty.hidden = !showGenericEmpty;
+  if (zoneEmpty) {
+    zoneEmpty.hidden = !showZoneEmpty;
+    if (showZoneEmpty) {
+      const to = ""; // sin destinatario por ahora (v1)
+      const subjBase = profile.base || "tu zona";
+      const subject = `Planes familia — zona ${subjBase}`;
+      const bodyText = `Hola,\n\nEstoy en ${subjBase} y me gustaría ver planes familiares en mi zona.\n\nGracias`;
+      const href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+      const link = document.getElementById("zone-mailto");
+      if (link) link.setAttribute("href", href);
+    }
+  }
+  // Evergreen: ocultar fuera de huella para no aparentar inventario nacional
+  if (!inFootprint) {
+    if (evergreenWrap) evergreenWrap.hidden = true;
+    if (evergreenEl) evergreenEl.innerHTML = "";
+    if (evergreenFilters) {
+      evergreenFilters.hidden = true;
+      evergreenFilters.innerHTML = "";
+      egFilter = "all";
+    }
+  } else {
+    if (evergreenWrap) evergreenWrap.hidden = false;
+    buildEvergreenFilters();
+  }
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
   bindPins(document);
-  renderEvergreen();
+  if (inFootprint) renderEvergreen();
 }
 
 /* Novedades strip: render max 3 rows; allow per-row dismiss persisted in localStorage */
