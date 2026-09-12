@@ -450,45 +450,49 @@
     </div>
     <div id="live" class="sr-only" aria-live="polite"></div>
 
-    <section id="settings" class="panel" hidden>
-      <h2>Perfil de familia</h2>
-      <p class="hint">Se guarda en este navegador. Sirve para reutilizar el visor con otra familia.</p>
-      <div class="form-grid">
-        <div>
-          <label for="pf-title">Nombre del tablero</label>
-          <input id="pf-title" type="text" placeholder="Planes familia"/>
+    <!-- Perfil (modal/sheet) -->
+    <div id="profile" class="paywall-backdrop" hidden>
+      <div class="paywall-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+        <h3 id="profile-title" class="title" style="margin:0 0 8px">Perfil de familia</h3>
+        <p class="hint" style="margin:0 0 8px">Se guarda en este navegador. Si entras con Google, se sincroniza.</p>
+        <div class="form-grid">
+          <div>
+            <label for="pf-title">Nombre del tablero</label>
+            <input id="pf-title" type="text" placeholder="Planes familia"/>
+          </div>
+          <div>
+            <label for="pf-email">Email (opcional)</label>
+            <input id="pf-email" type="text" inputmode="email" placeholder="correo@ejemplo.com"/>
+          </div>
         </div>
-        <div>
-          <label for="pf-email">Email (opcional)</label>
-          <input id="pf-email" type="text" inputmode="email" placeholder="correo@ejemplo.com"/>
+        <div class="form-actions" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px">
+          <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
+          <p class="hint" style="margin:2px 0 0">Usamos tu ubicación para acercar planes (se guarda en este navegador).</p>
+          <p id="pf-base-display" class="hint" style="margin:0">Sin ubicación aún</p>
+        </div>
+        <div class="form-grid" style="margin-top:10px">
+          <div>
+            <label for="pf-adults">Adultos</label>
+            <input id="pf-adults" type="number" min="1" max="6" placeholder="2"/>
+          </div>
+          <div>
+            <label for="pf-radius">Radio (min)</label>
+            <input id="pf-radius" type="number" min="15" max="180" step="5" placeholder="60"/>
+          </div>
+        </div>
+        <label class="check-row" style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:.9rem;color:var(--ink)">
+          <input id="pf-cal" type="checkbox" style="width:auto;margin-top:3px"/>
+          <span>Al fijar, abrir Google Calendar con el plan (si estás logueado en Google, solo confirmas)</span>
+        </label>
+        <p class="section-label" style="margin-top:14px">Niños</p>
+        <div id="kids-editor"></div>
+        <div class="form-actions" style="gap:8px;margin-top:6px">
+          <button type="button" class="btn ghost" id="add-kid">Añadir niño</button>
+          <button type="button" class="btn primary" id="save-profile">Guardar perfil</button>
+          <button type="button" class="link-btn" id="profile-close" style="margin-left:auto">Cerrar</button>
         </div>
       </div>
-      <div class="form-actions" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px">
-        <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
-        <p class="hint" style="margin:2px 0 0">Usamos tu ubicación para acercar planes (se guarda en este navegador).</p>
-        <p id="pf-base-display" class="hint" style="margin:0">Sin ubicación aún</p>
-      </div>
-      <div class="form-grid" style="margin-top:10px">
-        <div>
-          <label for="pf-adults">Adultos (opcional)</label>
-          <input id="pf-adults" type="text" placeholder="Nombres separados por coma"/>
-        </div>
-        <div>
-          <label for="pf-radius">Radio (min)</label>
-          <input id="pf-radius" type="number" min="15" max="180" step="5" placeholder="60"/>
-        </div>
-      </div>
-      <label class="check-row" style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:.9rem;color:var(--ink)">
-        <input id="pf-cal" type="checkbox" style="width:auto;margin-top:3px"/>
-        <span>Al fijar, abrir Google Calendar con el plan (si estás logueado en Google, solo confirmas)</span>
-      </label>
-      <p class="section-label" style="margin-top:14px">Niños</p>
-      <div id="kids-editor"></div>
-      <div class="form-actions">
-        <button type="button" class="btn ghost" id="add-kid">Añadir niño</button>
-        <button type="button" class="btn primary" id="save-profile">Guardar perfil</button>
-      </div>
-    </section>
+    </div>
  
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
