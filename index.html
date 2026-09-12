@@ -174,6 +174,45 @@
   /* Equalize top gap for all section labels; avoid wrapper collapse */
   #pinned-wrap { margin: 0 0 8px; overflow: auto; }
   #list { margin-top: 0; }
+  /* Mini calendario sobre Fijados (rejilla de huecos sobre pines) */
+  #pinned-cal-wrap { margin: 2px 0 8px; }
+  #pinned-cal-toggle { margin: 0 0 6px; }
+  .mini-cal-head { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 0 4px; }
+  .mini-cal-title { font-weight: 700; font-size: .9rem; color: var(--ink); }
+  .mini-cal-dow, .mini-cal-grid {
+    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;
+  }
+  .mini-cal-dow div { text-align: center; font-size: .72rem; color: var(--muted); padding: 2px 0; }
+  .cal-cell {
+    position: relative; text-align: center; font-size: .86rem; line-height: 1;
+    min-height: 28px; padding: 6px 0; border-radius: 8px;
+    border: 1px dashed rgba(18,32,30,.10); color: var(--muted);
+    background: transparent;
+  }
+  html[data-theme="dark"] .cal-cell { border-color: rgba(255,255,255,.10); }
+  .cal-cell.pad { visibility: hidden; }
+  .cal-cell .num { font-weight: 600; color: var(--ink); opacity: .9; }
+  .cal-cell.empty .num { opacity: .55; }
+  .cal-cell.has-pins {
+    border-style: solid; border-color: var(--teal-soft); background: rgba(13,148,136,.06);
+  }
+  html[data-theme="dark"] .cal-cell.has-pins { background: rgba(20,184,166,.10); }
+  .cal-cell.has-pins .num { color: var(--ink); }
+  .cal-cell.has-pins .dot {
+    position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    width: 6px; height: 6px; border-radius: 999px; background: var(--teal);
+  }
+  .cal-cell.has-pins .cnt {
+    position: absolute; bottom: 2px; right: 4px; font-size: .68rem; color: var(--teal); font-weight: 700;
+  }
+  .cal-cell.btn { cursor: pointer; }
+  .cal-cell.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--teal-soft); }
+  /* Resalte breve al saltar desde calendario */
+  @keyframes flashPin {
+    0% { box-shadow: 0 0 0 0 rgba(15,118,110,.35); }
+    100% { box-shadow: 0 0 0 2px rgba(15,118,110,.18); }
+  }
+  .card.flash { animation: flashPin 1100ms ease-out 1; }
   #custom-inline {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: end;
     padding: 4px 0 2px;
@@ -446,6 +485,15 @@
     </div>
     <div id="pinned-wrap" hidden>
       <div class="section-label">Fijados · lo que queréis hacer</div>
+      <!-- Calendario compacto para ver huecos y días con pines -->
+      <div id="pinned-cal-wrap">
+        <button type="button" class="chip" id="pinned-cal-toggle" aria-expanded="false" aria-controls="pinned-cal">Calendario</button>
+        <div class="mini-cal-head" id="pinned-cal-head" hidden>
+          <div class="mini-cal-title" id="pinned-cal-title"></div>
+        </div>
+        <div class="mini-cal-dow" id="pinned-cal-dow" hidden></div>
+        <div class="mini-cal-grid" id="pinned-cal" hidden></div>
+      </div>
       <div id="pinned"></div>
     </div>
     <div id="live" class="sr-only" aria-live="polite"></div>
@@ -496,7 +544,11 @@
  
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
-    <p id="filter-empty" class="empty">Sin planes en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio en Perfil.</p>
+  <p id="filter-empty" class="empty">Sin planes cerca de ti en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio o usa tu ubicación en Perfil.</p>
+  <p id="zone-empty" class="empty" hidden>
+    Aún no hay planes cerca de ti — avísanos y priorizamos tu zona.
+    <a id="zone-mailto" class="link-btn" href="#" title="Escribir email">Avisadnos</a>
+  </p>
     <!-- Evergreen pool (inventory-owned). Renders when window.EVERGREEN exists -->
     <div id="evergreen-wrap">
       <div class="section-label">Siempre disponibles</div>
@@ -509,9 +561,12 @@
   <div id="paywall" class="paywall-backdrop" hidden>
     <div class="paywall-modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
       <h3 id="paywall-title" class="title" style="margin:0 0 8px">Planes familia</h3>
-      <p class="why" id="paywall-desc" style="margin:0 0 12px">Edición fundadora · <strong id="paywall-price">€4,99/mes</strong> · 1 familia Asturias</p>
+      <p class="why" id="paywall-desc" style="margin:0 0 12px">Edición fundadora · <strong id="paywall-price">€4,99/mes</strong> · 1 familia España</p>
       <div class="actions" style="gap:8px;margin:0 0 10px">
         <a class="btn primary" id="paywall-buy" href="#" target="_blank" rel="noopener">Comprar</a>
+      </div>
+      <div class="form-actions" style="gap:8px;margin:4px 0 6px">
+        <button type="button" class="btn ghost" id="google-signin-paywall">Entrar con Google</button>
       </div>
       <div class="form-grid full" style="margin:8px 0 4px">
         <div>
@@ -717,7 +772,27 @@ const HOME_CITIES = {
   "villaviciosa": { lat: 43.481, lng: -5.435 },
   "colunga": { lat: 43.477, lng: -5.274 },
   "peon": { lat: 43.459, lng: -5.58 },
-  "arroes": { lat: 43.477, lng: -5.596 }
+  "arroes": { lat: 43.477, lng: -5.596 },
+  /* España — principales ciudades */
+  "madrid": { lat: 40.4168, lng: -3.7038 },
+  "valencia": { lat: 39.4699, lng: -0.3763 },
+  "barcelona": { lat: 41.3874, lng: 2.1686 },
+  "sevilla": { lat: 37.3891, lng: -5.9845 },
+  "bilbao": { lat: 43.2630, lng: -2.9350 },
+  "zaragoza": { lat: 41.6488, lng: -0.8891 },
+  "malaga": { lat: 36.7213, lng: -4.4214 },
+  "murcia": { lat: 37.9922, lng: -1.1307 },
+  "palma": { lat: 39.5696, lng: 2.6502 },
+  "las palmas": { lat: 28.1235, lng: -15.4363 },
+  "valladolid": { lat: 41.6523, lng: -4.7245 },
+  "vigo": { lat: 42.2406, lng: -8.7207 },
+  "a coruna": { lat: 43.3623, lng: -8.4115 },
+  "granada": { lat: 37.1773, lng: -3.5986 },
+  "alicante": { lat: 38.3452, lng: -0.4810 },
+  "cordoba": { lat: 37.8882, lng: -4.7794 },
+  "oviedo": { lat: 43.3614, lng: -5.8494 },
+  "santander": { lat: 43.4623, lng: -3.8099 },
+  "pamplona": { lat: 42.8125, lng: -1.6458 }
 };
 const DISPLAY_HOME_NAMES = {
   gijon: "Gijón",
@@ -725,8 +800,36 @@ const DISPLAY_HOME_NAMES = {
   villaviciosa: "Villaviciosa",
   colunga: "Colunga",
   peon: "Peón",
-  arroes: "Arroes"
+  arroes: "Arroes",
+  madrid: "Madrid",
+  valencia: "Valencia",
+  barcelona: "Barcelona",
+  sevilla: "Sevilla",
+  bilbao: "Bilbao",
+  zaragoza: "Zaragoza",
+  malaga: "Málaga",
+  murcia: "Murcia",
+  palma: "Palma",
+  "las palmas": "Las Palmas",
+  valladolid: "Valladolid",
+  vigo: "Vigo",
+  "a coruna": "A Coruña",
+  granada: "Granada",
+  alicante: "Alicante",
+  cordoba: "Córdoba",
+  oviedo: "Oviedo",
+  santander: "Santander",
+  pamplona: "Pamplona"
 };
+// Huella actual de inventario (Asturias). Mantener simple y honesto:
+// Si el perfil base no está en estas ciudades, tratamos la zona como «fuera de huella».
+const INVENTORY_FOOTPRINT_KEYS = new Set([
+  "gijon", "oviedo", "mieres", "villaviciosa", "colunga", "peon", "arroes"
+]);
+function isInInventoryFootprint() {
+  const key = norm(profile.base);
+  return INVENTORY_FOOTPRINT_KEYS.has(key);
+}
 const PLACES = {
   "laboral": { lat: 43.532, lng: -5.628 },
   "gijon": HOME_CITIES["gijon"],
@@ -744,7 +847,26 @@ const PLACES = {
   "selorio": { lat: 43.514468, lng: -5.366836 },
   "espinaredo": { lat: 43.301336, lng: -5.363305 },
   "rodiles": { lat: 43.533404, lng: -5.379658 },
-  "botanico": { lat: 43.521502, lng: -5.615784 }
+  "botanico": { lat: 43.521502, lng: -5.615784 },
+  /* Stubs — principales ciudades España para futuros eventos */
+  "madrid": HOME_CITIES["madrid"],
+  "valencia": HOME_CITIES["valencia"],
+  "barcelona": HOME_CITIES["barcelona"],
+  "sevilla": HOME_CITIES["sevilla"],
+  "bilbao": HOME_CITIES["bilbao"],
+  "zaragoza": HOME_CITIES["zaragoza"],
+  "malaga": HOME_CITIES["malaga"],
+  "murcia": HOME_CITIES["murcia"],
+  "palma": HOME_CITIES["palma"],
+  "las palmas": HOME_CITIES["las palmas"],
+  "valladolid": HOME_CITIES["valladolid"],
+  "vigo": HOME_CITIES["vigo"],
+  "a coruna": HOME_CITIES["a coruna"],
+  "granada": HOME_CITIES["granada"],
+  "alicante": HOME_CITIES["alicante"],
+  "cordoba": HOME_CITIES["cordoba"],
+  "santander": HOME_CITIES["santander"],
+  "pamplona": HOME_CITIES["pamplona"]
 };
 const EVENTS = [
   {
@@ -1577,8 +1699,16 @@ let mode = "weekend";
 const list = document.getElementById("list");
 const pinnedEl = document.getElementById("pinned");
 const pinnedWrap = document.getElementById("pinned-wrap");
+/* Mini calendario DOM refs */
+const pinnedCalWrap = document.getElementById("pinned-cal-wrap");
+const pinnedCal = document.getElementById("pinned-cal");
+const pinnedCalToggle = document.getElementById("pinned-cal-toggle");
+const pinnedCalTitle = document.getElementById("pinned-cal-title");
+const pinnedCalHead = document.getElementById("pinned-cal-head");
+const pinnedCalDOW = document.getElementById("pinned-cal-dow");
 const empty = document.getElementById("filter-empty");
-const settings = document.getElementById("settings");
+const zoneEmpty = document.getElementById("zone-empty");
+const settings = document.getElementById("profile");
 const fromEl = document.getElementById("from");
 const toEl = document.getElementById("to");
 const customInline = document.getElementById("custom-inline");
@@ -1588,6 +1718,7 @@ const monthChips = document.getElementById("month-chips");
 const dateToggle = document.getElementById("date-toggle");
 const evergreenEl = document.getElementById("evergreen");
 const evergreenFilters = document.getElementById("evergreen-filters");
+const evergreenWrap = document.getElementById("evergreen-wrap");
 let egFilter = "all";
 const novedadesWrap = document.getElementById("novedades-wrap");
 const novedadesList = document.getElementById("novedades");
@@ -1722,6 +1853,8 @@ function renderEvergreen() {
         const pid = evergreenPinId(egId, only);
         pins.delete(pid);
         savePins(pins);
+        // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+        if (typeof window.onPinsChanged === "function") { try { window.onPinsChanged(pins); } catch (_) {} }
         render();
         return;
       }
@@ -1733,6 +1866,8 @@ function renderEvergreen() {
       if (pins.has(pid)) pins.delete(pid);
       else pins.add(pid);
       savePins(pins);
+      // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+      if (typeof window.onPinsChanged === "function") { try { window.onPinsChanged(pins); } catch (_) {} }
       render();
     });
   });
@@ -1776,10 +1911,14 @@ function filtered() {
 function applyDistance(items) {
   const home = getHomeCoords();
   if (!home) return items; // if unknown base, don't filter by distance
+  const inFootprint = isInInventoryFootprint();
   const limitKm = Math.max(1, Number(profile.radiusMin) || 60); // approx: 1 km ≈ 1 min (60 km/h)
   return items.filter(ev => {
+    // Fuera de huella: no «inventar» cercanía con useBase ni con eventos sin coordenadas
+    if (!inFootprint && ev.useBase) return false;
     const ec = getEventCoords(ev, home);
-    if (!ec) return true; // keep if unknown location
+    if (!inFootprint && !ec) return false; // fuera de huella y sin coords → excluir
+    if (!ec) return true; // dentro de huella: conservar si ubicación desconocida
     const d = haversineKm(home, ec);
     return d <= limitKm;
   });
@@ -1894,17 +2033,118 @@ function render() {
   const pinnedItems = resolvePinned();
   pinnedWrap.hidden = pinnedItems.length === 0;
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
+  // Mini calendario de pines
+  renderPinnedCalendar(pinnedItems);
   // Keep pinned items also visible in the main contextual list (do not filter them out)
   const rest = items;
   // Flat chronological list: sort by start date then priority (desc)
   rest.sort((a,b) => a.start.localeCompare(b.start) || b.priority - a.priority);
   list.innerHTML = rest.map(cardHTML).join("");
   // Prefer hidden attribute over inline display styles
-  empty.hidden = rest.length > 0;
+  const inFootprint = isInInventoryFootprint();
+  const showGenericEmpty = rest.length === 0 && inFootprint;
+  const showZoneEmpty = rest.length === 0 && !inFootprint;
+  empty.hidden = !showGenericEmpty;
+  if (zoneEmpty) {
+    zoneEmpty.hidden = !showZoneEmpty;
+    if (showZoneEmpty) {
+      const to = ""; // sin destinatario por ahora (v1)
+      const subjBase = profile.base || "tu zona";
+      const subject = `Planes familia — zona ${subjBase}`;
+      const bodyText = `Hola,\n\nEstoy en ${subjBase} y me gustaría ver planes familiares en mi zona.\n\nGracias`;
+      const href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+      const link = document.getElementById("zone-mailto");
+      if (link) link.setAttribute("href", href);
+    }
+  }
+  // Evergreen: ocultar fuera de huella para no aparentar inventario nacional
+  if (!inFootprint) {
+    if (evergreenWrap) evergreenWrap.hidden = true;
+    if (evergreenEl) evergreenEl.innerHTML = "";
+    if (evergreenFilters) {
+      evergreenFilters.hidden = true;
+      evergreenFilters.innerHTML = "";
+      egFilter = "all";
+    }
+  } else {
+    if (evergreenWrap) evergreenWrap.hidden = false;
+    buildEvergreenFilters();
+  }
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
   bindPins(document);
-  renderEvergreen();
+  if (inFootprint) renderEvergreen();
+}
+
+/* ---------- Calendario compacto (rejilla de huecos sobre pines) ---------- */
+let pinnedDateIndex = Object.create(null);
+function buildPinnedDateIndex(pinnedItems) {
+  const idx = Object.create(null);
+  for (const it of pinnedItems) {
+    const s = parseYMD(it.start);
+    const e = parseYMD(it.end);
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      const key = ymd(d);
+      if (!idx[key]) idx[key] = [];
+      idx[key].push({ id: it.id, title: it.title, start: it.start, end: it.end });
+    }
+  }
+  return idx;
+}
+function renderPinnedCalendar(pinnedItems) {
+  if (!pinnedCalWrap || !pinnedCal || !pinnedCalToggle) return;
+  const hasPins = Array.isArray(pinnedItems) && pinnedItems.length > 0;
+  // Mostrar controles solo si hay pines (el propio bloque de Fijados ya se oculta en 0)
+  pinnedCalWrap.style.display = hasPins ? "block" : "none";
+  if (!hasPins) return;
+  pinnedDateIndex = buildPinnedDateIndex(pinnedItems);
+  // Cabecera (mes actual)
+  const now = TODAY;
+  const monthName = now.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  if (pinnedCalTitle) pinnedCalTitle.textContent = monthName[0].toUpperCase() + monthName.slice(1);
+  if (pinnedCalHead) pinnedCalHead.hidden = pinnedCalToggle.getAttribute("aria-expanded") !== "true";
+  // Días de la semana (Lu..Do)
+  const dows = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"];
+  if (pinnedCalDOW) {
+    pinnedCalDOW.innerHTML = dows.map(d => `<div>${d}</div>`).join("");
+    pinnedCalDOW.hidden = pinnedCalToggle.getAttribute("aria-expanded") !== "true";
+  }
+  // Construir rejilla del mes actual (comienza en lunes)
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const firstDowMon0 = (first.getDay() + 6) % 7; // 0..6; lunes=0
+  const totalDays = last.getDate();
+  const cells = [];
+  for (let i = 0; i < firstDowMon0; i++) {
+    cells.push(`<div class="cal-cell pad" aria-hidden="true"></div>`);
+  }
+  for (let day = 1; day <= totalDays; day++) {
+    const d = new Date(year, month, day);
+    const key = ymd(d);
+    const items = pinnedDateIndex[key] || [];
+    const has = items.length > 0;
+    if (has) {
+      const aria = `${day} ${now.toLocaleDateString("es-ES", { month: "long" })}: ${items.length} ${items.length === 1 ? "pin" : "pines"}`;
+      cells.push(
+        `<button type="button" class="cal-cell btn day has-pins" data-date="${key}" aria-label="${aria}" title="${aria}">
+           <span class="num">${day}</span>
+           <span class="dot" aria-hidden="true"></span>
+           ${items.length > 1 ? `<span class="cnt" aria-hidden="true">${items.length}</span>` : ``}
+         </button>`
+      );
+    } else {
+      cells.push(
+        `<div class="cal-cell day empty" aria-label="${day} ${now.toLocaleDateString("es-ES", { month: "long" })}">
+           <span class="num">${day}</span>
+         </div>`
+      );
+    }
+  }
+  pinnedCal.innerHTML = cells.join("");
+  const open = pinnedCalToggle.getAttribute("aria-expanded") === "true";
+  pinnedCal.hidden = !open;
 }
 
 /* Novedades strip: render max 3 rows; allow per-row dismiss persisted in localStorage */
@@ -1945,11 +2185,17 @@ function renderNovedades() {
   });
 }
 
-document.getElementById("settings-toggle").addEventListener("click", () => {
-  const open = settings.hasAttribute("hidden");
-  settings.hidden = !open;
-  if (open) fillProfileForm();
-});
+// Perfil (modal) open/close helpers
+function openProfile() {
+  if (!settings) return;
+  fillProfileForm();
+  settings.hidden = false;
+}
+function closeProfile() {
+  if (!settings) return;
+  settings.hidden = true;
+}
+document.getElementById("settings-toggle").addEventListener("click", openProfile);
 
 // Theme toggle (light/dark) with persistence
 (function initThemeToggle(){
@@ -2022,11 +2268,37 @@ document.getElementById("save-profile").addEventListener("click", () => {
   readProfileForm();
   saveProfile(profile);
   saveFamily(family);
-  settings.hidden = true;
+  closeProfile();
   render();
+  // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+  if (typeof window.onProfileSaved === "function") { try { window.onProfileSaved(profile); } catch (_) {} }
 });
 
 buildMonthChips();
+// Auto-abrir configuración si el perfil está incompleto (primer uso)
+(function initAutoProfile(){
+  const SETUP_SEEN_PREFIX = "family-plans-setup-seen-v1:";
+  function keyFor(uid){ return SETUP_SEEN_PREFIX + (uid || "anon"); }
+  function hasSeen(uid){ try { return !!localStorage.getItem(keyFor(uid)); } catch { return false; } }
+  function markSeen(uid){ try { localStorage.setItem(keyFor(uid), "1"); } catch {} }
+  function requiresSetup(p) {
+    try {
+      const hasBase = !!(p.base && String(p.base).trim());
+      const hasAdults = !!(p.adults && String(p.adults).trim());
+      const hasKidYear = Array.isArray(p.kids) && p.kids.some(k => k && k.birthYear);
+      return !(hasBase && hasAdults && hasKidYear);
+    } catch { return true; }
+  }
+  window.maybeAutoOpenProfile = function(uid){
+    if (!settings) return;
+    if (requiresSetup(profile) && !hasSeen(uid)) {
+      openProfile();
+      markSeen(uid);
+    }
+  };
+  // Primera carga (sin sesión)
+  try { window.maybeAutoOpenProfile(null); } catch {}
+})();
 /* Only bind to preset chips; the 'Fechas' toggle is handled separately */
 document.querySelectorAll('.chip[data-preset]').forEach(chip => {
   chip.addEventListener("click", () => {
@@ -2040,6 +2312,42 @@ if (dateToggle) {
   dateToggle.addEventListener("click", () => {
     const isOpen = customInline.classList.toggle("open");
     dateToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+}
+/* Calendario: toggle y navegación a cards fijadas */
+if (pinnedCalToggle) {
+  pinnedCalToggle.addEventListener("click", () => {
+    const now = pinnedCalToggle.getAttribute("aria-expanded") === "true";
+    pinnedCalToggle.setAttribute("aria-expanded", now ? "false" : "true");
+    // Mostrar/ocultar cabecera y rejilla
+    if (pinnedCalHead) pinnedCalHead.hidden = now;
+    if (pinnedCalDOW) pinnedCalDOW.hidden = now;
+    if (pinnedCal) pinnedCal.hidden = now;
+  });
+}
+if (pinnedCal) {
+  pinnedCal.addEventListener("click", (evt) => {
+    const cell = evt.target && (evt.target.closest ? evt.target.closest(".cal-cell.has-pins[data-date]") : null);
+    if (!cell) return;
+    const dateStr = cell.getAttribute("data-date");
+    const items = (pinnedDateIndex && pinnedDateIndex[dateStr]) || [];
+    if (!items.length) return;
+    // Encontrar y resaltar cards en Fijados
+    const targets = [];
+    for (const it of items) {
+      try {
+        const sel = `#pinned .card[data-id="${CSS && CSS.escape ? CSS.escape(it.id) : it.id.replace(/"/g, '\\"')}"]`;
+        const el = document.querySelector(sel);
+        if (el) targets.push(el);
+      } catch(_) {}
+    }
+    if (targets.length) {
+      targets[0].scrollIntoView({ behavior: "smooth", block: "center" });
+      targets.forEach(el => {
+        el.classList.add("flash");
+        setTimeout(() => el.classList.remove("flash"), 1200);
+      });
+    }
   });
 }
 function useCustomRange() {
@@ -2105,6 +2413,8 @@ renderNovedades();
       }
     }
     savePins(pins);
+    // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+    if (typeof window.onPinsChanged === "function") { try { window.onPinsChanged(pins); } catch (_) {} }
     const live = document.getElementById("live");
     if (live && item) {
       live.textContent = (nowPinned ? "Fijado: " : "Quitado: ") + tpl(item.title);
@@ -2235,6 +2545,161 @@ if (useGeoBtn && "geolocation" in navigator) {
       if (e.target === backdrop) closePaywall();
     });
   }
+})();
+
+// Perfil modal wiring
+(function initProfileModal(){
+  const backdrop = document.getElementById("profile");
+  if (backdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closeProfile();
+    });
+  }
+  const closeBtn = document.getElementById("profile-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeProfile);
+})();
+</script>
+<!-- Firebase (compat) — Auth + Firestore opcional (solo para sesión/identidad y sincronía de datos) -->
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script>
+// Sesión con Google (opcional) + sincronización segura de pins/perfil (cuando sea posible)
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBo07yqy-smI9nSih-c25bxUfav5FRF5hw",
+    authDomain: "family-plans-6a051.firebaseapp.com",
+    projectId: "family-plans-6a051",
+    storageBucket: "family-plans-6a051.firebasestorage.app",
+    messagingSenderId: "400421052656",
+    appId: "1:400421052656:web:c9c8f5a00b43d7d0662235"
+  };
+  try { firebase.initializeApp(firebaseConfig); } catch(_) {}
+  var auth = null, db = null;
+  try {
+    auth = firebase.auth();
+    if (auth && auth.setPersistence && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence) {
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+    }
+  } catch(_) {}
+  try { db = firebase.firestore(); } catch(_) {}
+  var provider = null;
+  try { provider = new firebase.auth.GoogleAuthProvider(); } catch(_) {}
+
+  function setAuthUI(user) {
+    var out = document.getElementById("auth-signed-out");
+    var inEl = document.getElementById("auth-signed-in");
+    if (user) {
+      if (out) out.style.display = "none";
+      if (inEl) inEl.style.display = "flex";
+      var n = document.getElementById("auth-name");
+      var em = document.getElementById("auth-email");
+      if (n) n.textContent = user.displayName || (user.email ? user.email.split("@")[0] : "Usuario");
+      if (em) em.textContent = user.email || "";
+    } else {
+      if (out) out.style.display = "flex";
+      if (inEl) inEl.style.display = "none";
+    }
+  }
+
+  function unionSets(aSet, bArr) {
+    var out = new Set(Array.isArray(bArr) ? bArr : []);
+    try { aSet.forEach(function(v){ out.add(v); }); } catch(_){}
+    return out;
+  }
+  function mergeProfile(local, cloud) {
+    if (!cloud) return local;
+    var m = Object.assign({}, local || {});
+    function pick(lv, cv) {
+      if (Array.isArray(lv)) return (lv && lv.length) ? lv : (Array.isArray(cv) ? cv : lv);
+      if (lv === null || lv === undefined || lv === "" || lv === 0) return (cv !== undefined && cv !== null && cv !== "" ? cv : lv);
+      return lv;
+    }
+    m.title = pick(local.title, cloud.title);
+    m.base = pick(local.base, cloud.base);
+    m.adults = pick(local.adults, cloud.adults);
+    m.radiusMin = pick(local.radiusMin, cloud.radiusMin);
+    m.calendarOnPin = (typeof local.calendarOnPin === "boolean") ? local.calendarOnPin : !!cloud.calendarOnPin;
+    m.kids = (Array.isArray(local.kids) && local.kids.length) ? local.kids : (Array.isArray(cloud.kids) ? cloud.kids : local.kids);
+    return m;
+  }
+  function tryUpdateCloud(uid, data) {
+    if (!db || !uid) return Promise.resolve();
+    var ref = db.collection("users").doc(uid);
+    var payload = Object.assign({}, data);
+    try { payload.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); } catch(_){}
+    return ref.set(payload, { merge: true }).catch(function(){});
+  }
+  function initialSync(user) {
+    if (!user) { setAuthUI(null); return; }
+    if (!db) { setAuthUI(user); return; }
+    var uid = user.uid;
+    var ref = db.collection("users").doc(uid);
+    ref.get().then(function(snap){
+      var data = snap.exists ? (snap.data() || {}) : {};
+      var cloudPins = Array.isArray(data.pins) ? data.pins : [];
+      // Unir pins: local ∪ nube
+      try {
+        var mergedPins = unionSets(pins, cloudPins);
+        // Empujar unión a la nube siempre (no se considera una acción de pago)
+        tryUpdateCloud(uid, { pins: Array.from(mergedPins) });
+        // Persistir local SOLO si está desbloqueado (respeta soft-gate)
+        if (isUnlocked()) {
+          pins = mergedPins;
+          savePins(pins);
+          render();
+        }
+      } catch(_){}
+      // Perfil: fusionar (preferir datos locales si existen)
+      try {
+        var cloudProfile = data.profile || null;
+        var mergedProfile = mergeProfile(profile, cloudProfile);
+        saveProfile(mergedProfile);
+        // Actualizar memoria para refrescar cabecera al vuelo
+        profile = mergedProfile;
+        render();
+        tryUpdateCloud(uid, { profile: mergedProfile });
+      } catch(_){}
+      setAuthUI(user);
+      try { if (typeof window.maybeAutoOpenProfile === "function") window.maybeAutoOpenProfile(uid); } catch (_){}
+    }).catch(function(){
+      // Reglas no configuradas: UI de sesión funciona; no sincronizamos
+      setAuthUI(user);
+      try {
+        var uid2 = user && user.uid;
+        if (typeof window.maybeAutoOpenProfile === "function") window.maybeAutoOpenProfile(uid2);
+      } catch (_){}
+    });
+  }
+  // Botones
+  var si1 = document.getElementById("google-signin-settings");
+  if (si1 && auth && provider) si1.addEventListener("click", function(){ auth.signInWithPopup(provider).catch(function(){}); });
+  var si2 = document.getElementById("google-signin-paywall");
+  if (si2 && auth && provider) si2.addEventListener("click", function(){ auth.signInWithPopup(provider).catch(function(){}); });
+  var so1 = document.getElementById("google-signout-settings");
+  if (so1 && auth) so1.addEventListener("click", function(){ auth.signOut().catch(function(){}); });
+
+  if (auth && auth.onAuthStateChanged) {
+    auth.onAuthStateChanged(function(user){
+      if (user) initialSync(user);
+      else setAuthUI(null);
+    });
+  }
+  // Hooks desde la app principal: guardar a nube cuando cambian pins/perfil
+  window.onPinsChanged = function(currentPins){
+    try {
+      var u = auth && auth.currentUser;
+      if (!u) return;
+      tryUpdateCloud(u.uid, { pins: Array.from(currentPins || pins) });
+    } catch(_){}
+  };
+  window.onProfileSaved = function(currentProfile){
+    try {
+      var u = auth && auth.currentUser;
+      if (!u) return;
+      tryUpdateCloud(u.uid, { profile: currentProfile || profile });
+    } catch(_){}
+  };
 })();
 </script>
 </body>
