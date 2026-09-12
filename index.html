@@ -492,7 +492,7 @@
  
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
-    <p id="filter-empty" class="empty">Sin planes en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio en Perfil.</p>
+  <p id="filter-empty" class="empty">Sin planes cerca de ti en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio o usa tu ubicación en Perfil.</p>
     <!-- Evergreen pool (inventory-owned). Renders when window.EVERGREEN exists -->
     <div id="evergreen-wrap">
       <div class="section-label">Siempre disponibles</div>
@@ -505,7 +505,7 @@
   <div id="paywall" class="paywall-backdrop" hidden>
     <div class="paywall-modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
       <h3 id="paywall-title" class="title" style="margin:0 0 8px">Planes familia</h3>
-      <p class="why" id="paywall-desc" style="margin:0 0 12px">Edición fundadora · <strong id="paywall-price">€4,99/mes</strong> · 1 familia Asturias</p>
+      <p class="why" id="paywall-desc" style="margin:0 0 12px">Edición fundadora · <strong id="paywall-price">€4,99/mes</strong> · 1 familia España</p>
       <div class="actions" style="gap:8px;margin:0 0 10px">
         <a class="btn primary" id="paywall-buy" href="#" target="_blank" rel="noopener">Comprar</a>
       </div>
@@ -713,7 +713,27 @@ const HOME_CITIES = {
   "villaviciosa": { lat: 43.481, lng: -5.435 },
   "colunga": { lat: 43.477, lng: -5.274 },
   "peon": { lat: 43.459, lng: -5.58 },
-  "arroes": { lat: 43.477, lng: -5.596 }
+  "arroes": { lat: 43.477, lng: -5.596 },
+  /* España — principales ciudades */
+  "madrid": { lat: 40.4168, lng: -3.7038 },
+  "valencia": { lat: 39.4699, lng: -0.3763 },
+  "barcelona": { lat: 41.3874, lng: 2.1686 },
+  "sevilla": { lat: 37.3891, lng: -5.9845 },
+  "bilbao": { lat: 43.2630, lng: -2.9350 },
+  "zaragoza": { lat: 41.6488, lng: -0.8891 },
+  "malaga": { lat: 36.7213, lng: -4.4214 },
+  "murcia": { lat: 37.9922, lng: -1.1307 },
+  "palma": { lat: 39.5696, lng: 2.6502 },
+  "las palmas": { lat: 28.1235, lng: -15.4363 },
+  "valladolid": { lat: 41.6523, lng: -4.7245 },
+  "vigo": { lat: 42.2406, lng: -8.7207 },
+  "a coruna": { lat: 43.3623, lng: -8.4115 },
+  "granada": { lat: 37.1773, lng: -3.5986 },
+  "alicante": { lat: 38.3452, lng: -0.4810 },
+  "cordoba": { lat: 37.8882, lng: -4.7794 },
+  "oviedo": { lat: 43.3614, lng: -5.8494 },
+  "santander": { lat: 43.4623, lng: -3.8099 },
+  "pamplona": { lat: 42.8125, lng: -1.6458 }
 };
 const DISPLAY_HOME_NAMES = {
   gijon: "Gijón",
@@ -721,7 +741,26 @@ const DISPLAY_HOME_NAMES = {
   villaviciosa: "Villaviciosa",
   colunga: "Colunga",
   peon: "Peón",
-  arroes: "Arroes"
+  arroes: "Arroes",
+  madrid: "Madrid",
+  valencia: "Valencia",
+  barcelona: "Barcelona",
+  sevilla: "Sevilla",
+  bilbao: "Bilbao",
+  zaragoza: "Zaragoza",
+  malaga: "Málaga",
+  murcia: "Murcia",
+  palma: "Palma",
+  "las palmas": "Las Palmas",
+  valladolid: "Valladolid",
+  vigo: "Vigo",
+  "a coruna": "A Coruña",
+  granada: "Granada",
+  alicante: "Alicante",
+  cordoba: "Córdoba",
+  oviedo: "Oviedo",
+  santander: "Santander",
+  pamplona: "Pamplona"
 };
 const PLACES = {
   "laboral": { lat: 43.532, lng: -5.628 },
@@ -740,7 +779,26 @@ const PLACES = {
   "selorio": { lat: 43.514468, lng: -5.366836 },
   "espinaredo": { lat: 43.301336, lng: -5.363305 },
   "rodiles": { lat: 43.533404, lng: -5.379658 },
-  "botanico": { lat: 43.521502, lng: -5.615784 }
+  "botanico": { lat: 43.521502, lng: -5.615784 },
+  /* Stubs — principales ciudades España para futuros eventos */
+  "madrid": HOME_CITIES["madrid"],
+  "valencia": HOME_CITIES["valencia"],
+  "barcelona": HOME_CITIES["barcelona"],
+  "sevilla": HOME_CITIES["sevilla"],
+  "bilbao": HOME_CITIES["bilbao"],
+  "zaragoza": HOME_CITIES["zaragoza"],
+  "malaga": HOME_CITIES["malaga"],
+  "murcia": HOME_CITIES["murcia"],
+  "palma": HOME_CITIES["palma"],
+  "las palmas": HOME_CITIES["las palmas"],
+  "valladolid": HOME_CITIES["valladolid"],
+  "vigo": HOME_CITIES["vigo"],
+  "a coruna": HOME_CITIES["a coruna"],
+  "granada": HOME_CITIES["granada"],
+  "alicante": HOME_CITIES["alicante"],
+  "cordoba": HOME_CITIES["cordoba"],
+  "santander": HOME_CITIES["santander"],
+  "pamplona": HOME_CITIES["pamplona"]
 };
 const EVENTS = [
   {
