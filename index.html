@@ -453,6 +453,18 @@
     <section id="settings" class="panel" hidden>
       <h2>Perfil de familia</h2>
       <p class="hint">Se guarda en este navegador. Sirve para reutilizar el visor con otra familia.</p>
+      <!-- Inicio: sesión Google (opcional) -->
+      <div id="auth-box" style="margin:6px 0 10px">
+        <div id="auth-signed-out" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="hint" style="margin:0">Sesión: no conectado</span>
+          <button type="button" class="btn ghost" id="google-signin-settings">Entrar con Google</button>
+        </div>
+        <div id="auth-signed-in" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="hint" style="margin:0">Conectado como <strong id="auth-name"></strong> · <span id="auth-email"></span></span>
+          <button type="button" class="btn ghost" id="google-signout-settings">Salir</button>
+        </div>
+      </div>
+      <!-- Fin: sesión Google -->
       <div class="form-grid">
         <div>
           <label for="pf-title">Nombre del tablero</label>
@@ -512,6 +524,9 @@
       <p class="why" id="paywall-desc" style="margin:0 0 12px">Edición fundadora · <strong id="paywall-price">€4,99/mes</strong> · 1 familia España</p>
       <div class="actions" style="gap:8px;margin:0 0 10px">
         <a class="btn primary" id="paywall-buy" href="#" target="_blank" rel="noopener">Comprar</a>
+      </div>
+      <div class="form-actions" style="gap:8px;margin:4px 0 6px">
+        <button type="button" class="btn ghost" id="google-signin-paywall">Entrar con Google</button>
       </div>
       <div class="form-grid full" style="margin:8px 0 4px">
         <div>
@@ -1791,6 +1806,8 @@ function renderEvergreen() {
         const pid = evergreenPinId(egId, only);
         pins.delete(pid);
         savePins(pins);
+        // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+        if (typeof window.onPinsChanged === "function") { try { window.onPinsChanged(pins); } catch (_) {} }
         render();
         return;
       }
@@ -1802,6 +1819,8 @@ function renderEvergreen() {
       if (pins.has(pid)) pins.delete(pid);
       else pins.add(pid);
       savePins(pins);
+      // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+      if (typeof window.onPinsChanged === "function") { try { window.onPinsChanged(pins); } catch (_) {} }
       render();
     });
   });
@@ -2125,6 +2144,8 @@ document.getElementById("save-profile").addEventListener("click", () => {
   saveFamily(family);
   settings.hidden = true;
   render();
+  // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+  if (typeof window.onProfileSaved === "function") { try { window.onProfileSaved(profile); } catch (_) {} }
 });
 
 buildMonthChips();
@@ -2206,6 +2227,8 @@ renderNovedades();
       }
     }
     savePins(pins);
+    // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
+    if (typeof window.onPinsChanged === "function") { try { window.onPinsChanged(pins); } catch (_) {} }
     const live = document.getElementById("live");
     if (live && item) {
       live.textContent = (nowPinned ? "Fijado: " : "Quitado: ") + tpl(item.title);
@@ -2336,6 +2359,144 @@ if (useGeoBtn && "geolocation" in navigator) {
       if (e.target === backdrop) closePaywall();
     });
   }
+})();
+</script>
+<!-- Firebase (compat) — Auth + Firestore opcional (solo para sesión/identidad y sincronía de datos) -->
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script>
+// Sesión con Google (opcional) + sincronización segura de pins/perfil (cuando sea posible)
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBo07yqy-smI9nSih-c25bxUfav5FRF5hw",
+    authDomain: "family-plans-6a051.firebaseapp.com",
+    projectId: "family-plans-6a051",
+    storageBucket: "family-plans-6a051.firebasestorage.app",
+    messagingSenderId: "400421052656",
+    appId: "1:400421052656:web:c9c8f5a00b43d7d0662235"
+  };
+  try { firebase.initializeApp(firebaseConfig); } catch(_) {}
+  var auth = null, db = null;
+  try {
+    auth = firebase.auth();
+    if (auth && auth.setPersistence && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence) {
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+    }
+  } catch(_) {}
+  try { db = firebase.firestore(); } catch(_) {}
+  var provider = null;
+  try { provider = new firebase.auth.GoogleAuthProvider(); } catch(_) {}
+
+  function setAuthUI(user) {
+    var out = document.getElementById("auth-signed-out");
+    var inEl = document.getElementById("auth-signed-in");
+    if (user) {
+      if (out) out.style.display = "none";
+      if (inEl) inEl.style.display = "flex";
+      var n = document.getElementById("auth-name");
+      var em = document.getElementById("auth-email");
+      if (n) n.textContent = user.displayName || (user.email ? user.email.split("@")[0] : "Usuario");
+      if (em) em.textContent = user.email || "";
+    } else {
+      if (out) out.style.display = "flex";
+      if (inEl) inEl.style.display = "none";
+    }
+  }
+
+  function unionSets(aSet, bArr) {
+    var out = new Set(Array.isArray(bArr) ? bArr : []);
+    try { aSet.forEach(function(v){ out.add(v); }); } catch(_){}
+    return out;
+  }
+  function mergeProfile(local, cloud) {
+    if (!cloud) return local;
+    var m = Object.assign({}, local || {});
+    function pick(lv, cv) {
+      if (Array.isArray(lv)) return (lv && lv.length) ? lv : (Array.isArray(cv) ? cv : lv);
+      if (lv === null || lv === undefined || lv === "" || lv === 0) return (cv !== undefined && cv !== null && cv !== "" ? cv : lv);
+      return lv;
+    }
+    m.title = pick(local.title, cloud.title);
+    m.base = pick(local.base, cloud.base);
+    m.adults = pick(local.adults, cloud.adults);
+    m.radiusMin = pick(local.radiusMin, cloud.radiusMin);
+    m.calendarOnPin = (typeof local.calendarOnPin === "boolean") ? local.calendarOnPin : !!cloud.calendarOnPin;
+    m.kids = (Array.isArray(local.kids) && local.kids.length) ? local.kids : (Array.isArray(cloud.kids) ? cloud.kids : local.kids);
+    return m;
+  }
+  function tryUpdateCloud(uid, data) {
+    if (!db || !uid) return Promise.resolve();
+    var ref = db.collection("users").doc(uid);
+    var payload = Object.assign({}, data);
+    try { payload.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); } catch(_){}
+    return ref.set(payload, { merge: true }).catch(function(){});
+  }
+  function initialSync(user) {
+    if (!user) { setAuthUI(null); return; }
+    if (!db) { setAuthUI(user); return; }
+    var uid = user.uid;
+    var ref = db.collection("users").doc(uid);
+    ref.get().then(function(snap){
+      var data = snap.exists ? (snap.data() || {}) : {};
+      var cloudPins = Array.isArray(data.pins) ? data.pins : [];
+      // Unir pins: local ∪ nube
+      try {
+        var mergedPins = unionSets(pins, cloudPins);
+        // Empujar unión a la nube siempre (no se considera una acción de pago)
+        tryUpdateCloud(uid, { pins: Array.from(mergedPins) });
+        // Persistir local SOLO si está desbloqueado (respeta soft-gate)
+        if (isUnlocked()) {
+          pins = mergedPins;
+          savePins(pins);
+          render();
+        }
+      } catch(_){}
+      // Perfil: fusionar (preferir datos locales si existen)
+      try {
+        var cloudProfile = data.profile || null;
+        var mergedProfile = mergeProfile(profile, cloudProfile);
+        saveProfile(mergedProfile);
+        // Actualizar memoria para refrescar cabecera al vuelo
+        profile = mergedProfile;
+        render();
+        tryUpdateCloud(uid, { profile: mergedProfile });
+      } catch(_){}
+      setAuthUI(user);
+    }).catch(function(){
+      // Reglas no configuradas: UI de sesión funciona; no sincronizamos
+      setAuthUI(user);
+    });
+  }
+  // Botones
+  var si1 = document.getElementById("google-signin-settings");
+  if (si1 && auth && provider) si1.addEventListener("click", function(){ auth.signInWithPopup(provider).catch(function(){}); });
+  var si2 = document.getElementById("google-signin-paywall");
+  if (si2 && auth && provider) si2.addEventListener("click", function(){ auth.signInWithPopup(provider).catch(function(){}); });
+  var so1 = document.getElementById("google-signout-settings");
+  if (so1 && auth) so1.addEventListener("click", function(){ auth.signOut().catch(function(){}); });
+
+  if (auth && auth.onAuthStateChanged) {
+    auth.onAuthStateChanged(function(user){
+      if (user) initialSync(user);
+      else setAuthUI(null);
+    });
+  }
+  // Hooks desde la app principal: guardar a nube cuando cambian pins/perfil
+  window.onPinsChanged = function(currentPins){
+    try {
+      var u = auth && auth.currentUser;
+      if (!u) return;
+      tryUpdateCloud(u.uid, { pins: Array.from(currentPins || pins) });
+    } catch(_){}
+  };
+  window.onProfileSaved = function(currentProfile){
+    try {
+      var u = auth && auth.currentUser;
+      if (!u) return;
+      tryUpdateCloud(u.uid, { profile: currentProfile || profile });
+    } catch(_){}
+  };
 })();
 </script>
 </body>
