@@ -498,57 +498,49 @@
     </div>
     <div id="live" class="sr-only" aria-live="polite"></div>
 
-    <section id="settings" class="panel" hidden>
-      <h2>Perfil de familia</h2>
-      <p class="hint">Se guarda en este navegador. Sirve para reutilizar el visor con otra familia.</p>
-      <!-- Inicio: sesión Google (opcional) -->
-      <div id="auth-box" style="margin:6px 0 10px">
-        <div id="auth-signed-out" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="hint" style="margin:0">Sesión: no conectado</span>
-          <button type="button" class="btn ghost" id="google-signin-settings">Entrar con Google</button>
+    <!-- Perfil (modal/sheet) -->
+    <div id="profile" class="paywall-backdrop" hidden>
+      <div class="paywall-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+        <h3 id="profile-title" class="title" style="margin:0 0 8px">Perfil de familia</h3>
+        <p class="hint" style="margin:0 0 8px">Se guarda en este navegador. Si entras con Google, se sincroniza.</p>
+        <div class="form-grid">
+          <div>
+            <label for="pf-title">Nombre del tablero</label>
+            <input id="pf-title" type="text" placeholder="Planes familia"/>
+          </div>
+          <div>
+            <label for="pf-email">Email (opcional)</label>
+            <input id="pf-email" type="text" inputmode="email" placeholder="correo@ejemplo.com"/>
+          </div>
         </div>
-        <div id="auth-signed-in" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="hint" style="margin:0">Conectado como <strong id="auth-name"></strong> · <span id="auth-email"></span></span>
-          <button type="button" class="btn ghost" id="google-signout-settings">Salir</button>
+        <div class="form-actions" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px">
+          <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
+          <p class="hint" style="margin:2px 0 0">Usamos tu ubicación para acercar planes (se guarda en este navegador).</p>
+          <p id="pf-base-display" class="hint" style="margin:0">Sin ubicación aún</p>
+        </div>
+        <div class="form-grid" style="margin-top:10px">
+          <div>
+            <label for="pf-adults">Adultos</label>
+            <input id="pf-adults" type="number" min="1" max="6" placeholder="2"/>
+          </div>
+          <div>
+            <label for="pf-radius">Radio (min)</label>
+            <input id="pf-radius" type="number" min="15" max="180" step="5" placeholder="60"/>
+          </div>
+        </div>
+        <label class="check-row" style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:.9rem;color:var(--ink)">
+          <input id="pf-cal" type="checkbox" style="width:auto;margin-top:3px"/>
+          <span>Al fijar, abrir Google Calendar con el plan (si estás logueado en Google, solo confirmas)</span>
+        </label>
+        <p class="section-label" style="margin-top:14px">Niños</p>
+        <div id="kids-editor"></div>
+        <div class="form-actions" style="gap:8px;margin-top:6px">
+          <button type="button" class="btn ghost" id="add-kid">Añadir niño</button>
+          <button type="button" class="btn primary" id="save-profile">Guardar perfil</button>
+          <button type="button" class="link-btn" id="profile-close" style="margin-left:auto">Cerrar</button>
         </div>
       </div>
-      <!-- Fin: sesión Google -->
-      <div class="form-grid">
-        <div>
-          <label for="pf-title">Nombre del tablero</label>
-          <input id="pf-title" type="text" placeholder="Planes familia"/>
-        </div>
-        <div>
-          <label for="pf-email">Email (opcional)</label>
-          <input id="pf-email" type="text" inputmode="email" placeholder="correo@ejemplo.com"/>
-        </div>
-      </div>
-      <div class="form-actions" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px">
-        <button type="button" class="btn ghost" id="use-geo">Usar mi ubicación</button>
-        <p class="hint" style="margin:2px 0 0">Usamos tu ubicación para acercar planes (se guarda en este navegador).</p>
-        <p id="pf-base-display" class="hint" style="margin:0">Sin ubicación aún</p>
-      </div>
-      <div class="form-grid" style="margin-top:10px">
-        <div>
-          <label for="pf-adults">Adultos (opcional)</label>
-          <input id="pf-adults" type="text" placeholder="Nombres separados por coma"/>
-        </div>
-        <div>
-          <label for="pf-radius">Radio (min)</label>
-          <input id="pf-radius" type="number" min="15" max="180" step="5" placeholder="60"/>
-        </div>
-      </div>
-      <label class="check-row" style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:.9rem;color:var(--ink)">
-        <input id="pf-cal" type="checkbox" style="width:auto;margin-top:3px"/>
-        <span>Al fijar, abrir Google Calendar con el plan (si estás logueado en Google, solo confirmas)</span>
-      </label>
-      <p class="section-label" style="margin-top:14px">Niños</p>
-      <div id="kids-editor"></div>
-      <div class="form-actions">
-        <button type="button" class="btn ghost" id="add-kid">Añadir niño</button>
-        <button type="button" class="btn primary" id="save-profile">Guardar perfil</button>
-      </div>
-    </section>
+    </div>
  
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
@@ -1716,7 +1708,7 @@ const pinnedCalHead = document.getElementById("pinned-cal-head");
 const pinnedCalDOW = document.getElementById("pinned-cal-dow");
 const empty = document.getElementById("filter-empty");
 const zoneEmpty = document.getElementById("zone-empty");
-const settings = document.getElementById("settings");
+const settings = document.getElementById("profile");
 const fromEl = document.getElementById("from");
 const toEl = document.getElementById("to");
 const customInline = document.getElementById("custom-inline");
@@ -2193,11 +2185,17 @@ function renderNovedades() {
   });
 }
 
-document.getElementById("settings-toggle").addEventListener("click", () => {
-  const open = settings.hasAttribute("hidden");
-  settings.hidden = !open;
-  if (open) fillProfileForm();
-});
+// Perfil (modal) open/close helpers
+function openProfile() {
+  if (!settings) return;
+  fillProfileForm();
+  settings.hidden = false;
+}
+function closeProfile() {
+  if (!settings) return;
+  settings.hidden = true;
+}
+document.getElementById("settings-toggle").addEventListener("click", openProfile);
 
 // Theme toggle (light/dark) with persistence
 (function initThemeToggle(){
@@ -2270,13 +2268,37 @@ document.getElementById("save-profile").addEventListener("click", () => {
   readProfileForm();
   saveProfile(profile);
   saveFamily(family);
-  settings.hidden = true;
+  closeProfile();
   render();
   // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
   if (typeof window.onProfileSaved === "function") { try { window.onProfileSaved(profile); } catch (_) {} }
 });
 
 buildMonthChips();
+// Auto-abrir configuración si el perfil está incompleto (primer uso)
+(function initAutoProfile(){
+  const SETUP_SEEN_PREFIX = "family-plans-setup-seen-v1:";
+  function keyFor(uid){ return SETUP_SEEN_PREFIX + (uid || "anon"); }
+  function hasSeen(uid){ try { return !!localStorage.getItem(keyFor(uid)); } catch { return false; } }
+  function markSeen(uid){ try { localStorage.setItem(keyFor(uid), "1"); } catch {} }
+  function requiresSetup(p) {
+    try {
+      const hasBase = !!(p.base && String(p.base).trim());
+      const hasAdults = !!(p.adults && String(p.adults).trim());
+      const hasKidYear = Array.isArray(p.kids) && p.kids.some(k => k && k.birthYear);
+      return !(hasBase && hasAdults && hasKidYear);
+    } catch { return true; }
+  }
+  window.maybeAutoOpenProfile = function(uid){
+    if (!settings) return;
+    if (requiresSetup(profile) && !hasSeen(uid)) {
+      openProfile();
+      markSeen(uid);
+    }
+  };
+  // Primera carga (sin sesión)
+  try { window.maybeAutoOpenProfile(null); } catch {}
+})();
 /* Only bind to preset chips; the 'Fechas' toggle is handled separately */
 document.querySelectorAll('.chip[data-preset]').forEach(chip => {
   chip.addEventListener("click", () => {
@@ -2524,6 +2546,18 @@ if (useGeoBtn && "geolocation" in navigator) {
     });
   }
 })();
+
+// Perfil modal wiring
+(function initProfileModal(){
+  const backdrop = document.getElementById("profile");
+  if (backdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closeProfile();
+    });
+  }
+  const closeBtn = document.getElementById("profile-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeProfile);
+})();
 </script>
 <!-- Firebase (compat) — Auth + Firestore opcional (solo para sesión/identidad y sincronía de datos) -->
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
@@ -2627,9 +2661,14 @@ if (useGeoBtn && "geolocation" in navigator) {
         tryUpdateCloud(uid, { profile: mergedProfile });
       } catch(_){}
       setAuthUI(user);
+      try { if (typeof window.maybeAutoOpenProfile === "function") window.maybeAutoOpenProfile(uid); } catch (_){}
     }).catch(function(){
       // Reglas no configuradas: UI de sesión funciona; no sincronizamos
       setAuthUI(user);
+      try {
+        var uid2 = user && user.uid;
+        if (typeof window.maybeAutoOpenProfile === "function") window.maybeAutoOpenProfile(uid2);
+      } catch (_){}
     });
   }
   // Botones
