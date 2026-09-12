@@ -1656,6 +1656,7 @@ const monthChips = document.getElementById("month-chips");
 const dateToggle = document.getElementById("date-toggle");
 const evergreenEl = document.getElementById("evergreen");
 const evergreenFilters = document.getElementById("evergreen-filters");
+const evergreenWrap = document.getElementById("evergreen-wrap");
 let egFilter = "all";
 const novedadesWrap = document.getElementById("novedades-wrap");
 const novedadesList = document.getElementById("novedades");
@@ -1982,16 +1983,29 @@ function render() {
       const to = ""; // sin destinatario por ahora (v1)
       const subjBase = profile.base || "tu zona";
       const subject = `Planes familia — zona ${subjBase}`;
-      const body = `Hola,%0D%0A%0D%0AEstoy en ${encodeURIComponent(subjBase)} y me gustaría ver planes familiares en mi zona.%0D%0A%0D%0AGracias`;
-      const href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${body}`;
+      const bodyText = `Hola,\n\nEstoy en ${subjBase} y me gustaría ver planes familiares en mi zona.\n\nGracias`;
+      const href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
       const link = document.getElementById("zone-mailto");
       if (link) link.setAttribute("href", href);
     }
   }
+  // Evergreen: ocultar fuera de huella para no aparentar inventario nacional
+  if (!inFootprint) {
+    if (evergreenWrap) evergreenWrap.hidden = true;
+    if (evergreenEl) evergreenEl.innerHTML = "";
+    if (evergreenFilters) {
+      evergreenFilters.hidden = true;
+      evergreenFilters.innerHTML = "";
+      egFilter = "all";
+    }
+  } else {
+    if (evergreenWrap) evergreenWrap.hidden = false;
+    buildEvergreenFilters();
+  }
   listLabel.style.display = rest.length ? "block" : "none";
   listLabel.textContent = mode === "upcoming" ? "Próximos importantes" : "En este tramo";
   bindPins(document);
-  renderEvergreen();
+  if (inFootprint) renderEvergreen();
 }
 
 /* Novedades strip: render max 3 rows; allow per-row dismiss persisted in localStorage */
