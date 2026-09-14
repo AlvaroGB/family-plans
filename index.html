@@ -503,6 +503,18 @@
       <div class="paywall-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
         <h3 id="profile-title" class="title" style="margin:0 0 8px">Perfil de familia</h3>
         <p class="hint" style="margin:0 0 8px">Se guarda en este navegador. Si entras con Google, se sincroniza.</p>
+        <!-- Inicio: sesión Google (opcional) -->
+        <div id="auth-box" style="margin:6px 0 10px">
+          <div id="auth-signed-out" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="hint" style="margin:0">Sesión: no conectado</span>
+            <button type="button" class="btn ghost" id="google-signin-settings">Entrar con Google</button>
+          </div>
+          <div id="auth-signed-in" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="hint" style="margin:0">Conectado como <strong id="auth-name"></strong> · <span id="auth-email"></span></span>
+            <button type="button" class="btn ghost" id="google-signout-settings">Salir</button>
+          </div>
+        </div>
+        <!-- Fin: sesión Google -->
         <div class="form-grid">
           <div>
             <label for="pf-title">Nombre del tablero</label>
