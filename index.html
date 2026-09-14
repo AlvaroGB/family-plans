@@ -358,7 +358,7 @@
   }
   .empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: .95rem; }
   footer { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 22px; padding: 0 8px; }
-  #pinned-wrap[hidden], #settings[hidden] { display: none !important; }
+#pinned-wrap[hidden], #profile[hidden] { display: none !important; }
   .hint { font-size: .8rem; color: var(--muted); margin: 0 0 10px; }
   /* Small link-style button for footer actions */
   .link-btn {
@@ -699,11 +699,22 @@ function syncLockUI() {
 
 // Familia (mínima): email opcional
 function loadFamily(uidOverride) {
-  try { return JSON.parse(localStorage.getItem(lsKey(FAMILY_KEY, uidOverride)) || "null") || { email: "" }; }
-  catch { return { email: "" }; }
+  try { 
+    const f = JSON.parse(localStorage.getItem(lsKey(FAMILY_KEY, uidOverride)) || "null") || { email: "" };
+    try { window.__FP_FAMILY = f; } catch(_) {}
+    return f;
+  }
+  catch { 
+    const f = { email: "" };
+    try { window.__FP_FAMILY = f; } catch(_) {}
+    return f;
+  }
 }
 function saveFamily(f, uidOverride) {
-  try { localStorage.setItem(lsKey(FAMILY_KEY, uidOverride), JSON.stringify(f || { email: "" })); } catch {}
+  try { 
+    localStorage.setItem(lsKey(FAMILY_KEY, uidOverride), JSON.stringify(f || { email: "" })); 
+  } catch {}
+  try { window.__FP_FAMILY = f || { email: "" }; } catch(_) {}
 }
 let family = loadFamily();
 const _now = new Date();
@@ -2436,7 +2447,7 @@ document.getElementById("save-profile").addEventListener("click", () => {
   closeProfile();
   render();
   // Hook para sincronizar a la nube si hay sesión (inyectado por bloque Firebase)
-  if (typeof window.onProfileSaved === "function") { try { window.onProfileSaved(profile); } catch (_) {} }
+  if (typeof window.onProfileSaved === "function") { try { window.onProfileSaved(profile, family); } catch (_) {} }
 });
 
 buildMonthChips();
@@ -2939,11 +2950,15 @@ if (useGeoBtn && "geolocation" in navigator) {
       tryUpdateCloud(u.uid, { pins: Array.from(currentPins || pins) });
     } catch(_){}
   };
-  window.onProfileSaved = function(currentProfile){
+  window.onProfileSaved = function(currentProfile, currentFamily){
     try {
       var u = auth && auth.currentUser;
       if (!u) return;
-      tryUpdateCloud(u.uid, { profile: currentProfile || profile, family: (typeof window !== "undefined" ? (window.family || null) : null) });
+      var fam = currentFamily;
+      if (!fam && typeof window !== "undefined") {
+        fam = window.__FP_FAMILY || null;
+      }
+      tryUpdateCloud(u.uid, { profile: currentProfile || profile, family: fam });
     } catch(_){}
   };
 })();
