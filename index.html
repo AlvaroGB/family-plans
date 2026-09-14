@@ -596,6 +596,18 @@ const UNLOCK_KEY = "family-plans-unlock-v1";
 const FAMILY_KEY = "family-plans-family-v1";
 const FOUNDER_CODE = "FUNDADOR";
 
+// UID-scoped localStorage helpers (per signed-in user when available)
+// When signed out, fall back to global keys (anon cache).
+window.__FP_UID = window.__FP_UID || null;
+function lsKey(base, uidOverride) {
+  try {
+    const u = (typeof uidOverride === "string" ? uidOverride : (window.__FP_UID || "")) || "";
+    return u ? `${base}::${u}` : base;
+  } catch(_) {
+    return base;
+  }
+}
+
 /* Desbloqueo local (soft gate) */
 function isUnlocked() {
   try { return !!localStorage.getItem(UNLOCK_KEY); } catch { return false; }
@@ -682,12 +694,12 @@ function syncLockUI() {
 }
 
 // Familia (mínima): email opcional
-function loadFamily() {
-  try { return JSON.parse(localStorage.getItem(FAMILY_KEY) || "null") || { email: "" }; }
+function loadFamily(uidOverride) {
+  try { return JSON.parse(localStorage.getItem(lsKey(FAMILY_KEY, uidOverride)) || "null") || { email: "" }; }
   catch { return { email: "" }; }
 }
-function saveFamily(f) {
-  try { localStorage.setItem(FAMILY_KEY, JSON.stringify(f || { email: "" })); } catch {}
+function saveFamily(f, uidOverride) {
+  try { localStorage.setItem(lsKey(FAMILY_KEY, uidOverride), JSON.stringify(f || { email: "" })); } catch {}
 }
 let family = loadFamily();
 const _now = new Date();
@@ -719,9 +731,9 @@ function ageFromYear(y) {
   const a = TODAY.getFullYear() - Number(y);
   return a >= 0 && a < 30 ? a : null;
 }
-function loadProfile() {
+function loadProfile(uidOverride) {
   try {
-    const raw = JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
+    const raw = JSON.parse(localStorage.getItem(lsKey(PROFILE_KEY, uidOverride)) || "null");
     if (!raw) return structuredClone(DEFAULT_PROFILE);
     return {
       title: raw.title || DEFAULT_PROFILE.title,
@@ -738,8 +750,8 @@ function loadProfile() {
     return structuredClone(DEFAULT_PROFILE);
   }
 }
-function saveProfile(p) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+function saveProfile(p, uidOverride) {
+  localStorage.setItem(lsKey(PROFILE_KEY, uidOverride), JSON.stringify(p));
 }
 let profile = loadProfile();
 
@@ -1760,14 +1772,14 @@ function openGoogleCalendar(ev) {
   window.open("https://calendar.google.com/calendar/render?" + params.toString(), "_blank", "noopener");
 }
 
-function loadPins() {
-  try { return new Set(JSON.parse(localStorage.getItem(PIN_KEY) || "[]")); }
+function loadPins(uidOverride) {
+  try { return new Set(JSON.parse(localStorage.getItem(lsKey(PIN_KEY, uidOverride)) || "[]")); }
   catch { return new Set(); }
 }
 function savePins(set) {
   // Hard guard: nunca persistir cambios de pins si está bloqueado
   if (!isUnlocked()) return;
-  localStorage.setItem(PIN_KEY, JSON.stringify([...set]));
+  localStorage.setItem(lsKey(PIN_KEY), JSON.stringify([...set]));
 }
 let pins = loadPins();
 
@@ -2694,6 +2706,7 @@ if (useGeoBtn && "geolocation" in navigator) {
   try { provider = new firebase.auth.GoogleAuthProvider(); } catch(_) {}
 
   function setAuthUI(user) {
+    try { window.__FP_UID = (user && user.uid) ? user.uid : null; } catch(_){}
     var out = document.getElementById("auth-signed-out");
     var inEl = document.getElementById("auth-signed-in");
     if (user) {
@@ -2706,6 +2719,8 @@ if (useGeoBtn && "geolocation" in navigator) {
     } else {
       if (out) out.style.display = "flex";
       if (inEl) inEl.style.display = "none";
+      // Al cerrar sesión, restaurar pins del caché anónimo y refrescar
+      try { pins = loadPins(); render(); } catch(_){}
     }
   }
 
@@ -2714,12 +2729,50 @@ if (useGeoBtn && "geolocation" in navigator) {
     try { aSet.forEach(function(v){ out.add(v); }); } catch(_){}
     return out;
   }
+  function isBlankKid(k) {
+    if (!k || typeof k !== "object") return true;
+    var name = (k.name || "").trim();
+    var by = (k.birthYear === 0 ? 0 : k.birthYear);
+    var hasYear = (typeof by === "number" && !isNaN(by));
+    return !name && !hasYear;
+  }
+  function mergeKids(localKids, cloudKids) {
+    var a = Array.isArray(localKids) ? localKids.filter(function(k){ return !isBlankKid(k); }) : [];
+    var b = Array.isArray(cloudKids) ? cloudKids.filter(function(k){ return !isBlankKid(k); }) : [];
+    var map = Object.create(null);
+    function keyOf(k) {
+      var nameKey = (k && k.name) ? String(k.name).trim().toLowerCase() : "";
+      var yearKey = (k && typeof k.birthYear === "number") ? String(k.birthYear) : "";
+      return nameKey ? ("n:" + nameKey) : (yearKey ? ("y:" + yearKey) : ("_" + Math.random().toString(36).slice(2)));
+    }
+    function mergeKid(kl, kc) {
+      var out = { name: "", birthYear: null };
+      // Prefer non-empty values; keep richer data
+      var ln = (kl && kl.name || "").trim();
+      var cn = (kc && kc.name || "").trim();
+      out.name = ln || cn || "";
+      var lby = (kl && typeof kl.birthYear === "number") ? kl.birthYear : null;
+      var cby = (kc && typeof kc.birthYear === "number") ? kc.birthYear : null;
+      out.birthYear = (lby != null ? lby : cby);
+      return out;
+    }
+    a.forEach(function(k){
+      map[keyOf(k)] = mergeKid(k, null);
+    });
+    b.forEach(function(k){
+      var key = keyOf(k);
+      map[key] = mergeKid(map[key] || null, k);
+    });
+    var out = Object.keys(map).map(function(k){ return map[k]; });
+    return out.length ? out : [];
+  }
   function mergeProfile(local, cloud) {
-    if (!cloud) return local;
+    if (!cloud && local) return local;
     var m = Object.assign({}, local || {});
     function pick(lv, cv) {
+      var isEmpty = (lv === null || lv === undefined || lv === "" || (typeof lv === "string" && lv.trim() === "") || lv === 0);
       if (Array.isArray(lv)) return (lv && lv.length) ? lv : (Array.isArray(cv) ? cv : lv);
-      if (lv === null || lv === undefined || lv === "" || lv === 0) return (cv !== undefined && cv !== null && cv !== "" ? cv : lv);
+      if (isEmpty) return (cv !== undefined && cv !== null && cv !== "" ? cv : lv);
       return lv;
     }
     m.title = pick(local.title, cloud.title);
@@ -2727,27 +2780,58 @@ if (useGeoBtn && "geolocation" in navigator) {
     m.adults = pick(local.adults, cloud.adults);
     m.radiusMin = pick(local.radiusMin, cloud.radiusMin);
     m.calendarOnPin = (typeof local.calendarOnPin === "boolean") ? local.calendarOnPin : !!cloud.calendarOnPin;
-    m.kids = (Array.isArray(local.kids) && local.kids.length) ? local.kids : (Array.isArray(cloud.kids) ? cloud.kids : local.kids);
+    var lk = Array.isArray(local.kids) ? local.kids : [];
+    var ck = (cloud && Array.isArray(cloud.kids)) ? cloud.kids : [];
+    m.kids = mergeKids(lk, ck);
     return m;
+  }
+  function mergeFamily(local, cloud) {
+    var le = local && typeof local.email === "string" ? local.email.trim() : "";
+    var ce = cloud && typeof cloud.email === "string" ? cloud.email.trim() : "";
+    return { email: le || ce || "" };
   }
   function tryUpdateCloud(uid, data) {
     if (!db || !uid) return Promise.resolve();
     var ref = db.collection("users").doc(uid);
-    var payload = Object.assign({}, data);
-    try { payload.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); } catch(_){}
-    return ref.set(payload, { merge: true }).catch(function(){});
+    return ref.get().then(function(snap){
+      var cloud = snap.exists ? (snap.data() || {}) : {};
+      var out = {};
+      if (data && Object.prototype.hasOwnProperty.call(data, "pins")) {
+        var incomingPins = Array.isArray(data.pins) ? data.pins : [];
+        var currentPins = Array.isArray(cloud.pins) ? cloud.pins : [];
+        var mergedPins = unionSets(new Set(incomingPins), currentPins);
+        out.pins = Array.from(mergedPins);
+      }
+      if (data && Object.prototype.hasOwnProperty.call(data, "profile")) {
+        out.profile = mergeProfile(data.profile || {}, cloud.profile || null);
+      }
+      if (data && Object.prototype.hasOwnProperty.call(data, "family")) {
+        out.family = mergeFamily(data.family || {}, cloud.family || null);
+      }
+      try { out.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); } catch(_){}
+      return ref.set(out, { merge: true });
+    }).catch(function(){});
   }
   function initialSync(user) {
     if (!user) { setAuthUI(null); return; }
-    if (!db) { setAuthUI(user); return; }
+    if (!db) { 
+      try { window.__FP_UID = user && user.uid ? user.uid : null; } catch(_) {}
+      setAuthUI(user); 
+      return; 
+    }
     var uid = user.uid;
+    try { window.__FP_UID = uid; } catch(_) {}
     var ref = db.collection("users").doc(uid);
     ref.get().then(function(snap){
       var data = snap.exists ? (snap.data() || {}) : {};
       var cloudPins = Array.isArray(data.pins) ? data.pins : [];
       // Unir pins: local ∪ nube
       try {
-        var mergedPins = unionSets(pins, cloudPins);
+        // Local anon + local uid-scoped (si existía de sesiones previas) + nube
+        var localAnonPins = pins instanceof Set ? pins : new Set();
+        var localUidPins = loadPins(uid);
+        var localUnion = unionSets(localAnonPins, Array.from(localUidPins || []));
+        var mergedPins = unionSets(localUnion, cloudPins);
         // Empujar unión a la nube siempre (no se considera una acción de pago)
         tryUpdateCloud(uid, { pins: Array.from(mergedPins) });
         // Persistir local SOLO si está desbloqueado (respeta soft-gate)
@@ -2757,15 +2841,24 @@ if (useGeoBtn && "geolocation" in navigator) {
           render();
         }
       } catch(_){}
-      // Perfil: fusionar (preferir datos locales si existen)
+      // Perfil y familia: fusionar sin perder información
       try {
         var cloudProfile = data.profile || null;
-        var mergedProfile = mergeProfile(profile, cloudProfile);
-        saveProfile(mergedProfile);
+        // Combinar: primero uid-local con nube, luego anon-local encima
+        var uidProfile = loadProfile(uid);
+        var step = mergeProfile(uidProfile || {}, cloudProfile);
+        var mergedProfile = mergeProfile(profile || {}, step);
+        saveProfile(mergedProfile, uid);
         // Actualizar memoria para refrescar cabecera al vuelo
         profile = mergedProfile;
+        // Familia: combinar de igual forma
+        var cloudFamily = data.family || null;
+        var uidFamily = loadFamily(uid);
+        var mergedFamily = mergeFamily(family || {}, mergeFamily(uidFamily || {}, cloudFamily));
+        saveFamily(mergedFamily, uid);
+        family = mergedFamily;
         render();
-        tryUpdateCloud(uid, { profile: mergedProfile });
+        tryUpdateCloud(uid, { profile: mergedProfile, family: mergedFamily });
       } catch(_){}
       setAuthUI(user);
     }).catch(function(){
@@ -2799,7 +2892,7 @@ if (useGeoBtn && "geolocation" in navigator) {
     try {
       var u = auth && auth.currentUser;
       if (!u) return;
-      tryUpdateCloud(u.uid, { profile: currentProfile || profile });
+      tryUpdateCloud(u.uid, { profile: currentProfile || profile, family: (typeof window !== "undefined" ? (window.family || null) : null) });
     } catch(_){}
   };
 })();
