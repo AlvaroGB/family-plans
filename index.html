@@ -124,7 +124,14 @@
     color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: .9rem;
     min-height: 44px; font-weight: 700; cursor: pointer;
   }
-  .chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
+  /* Selected state: make it unmistakable (also style custom-date toggle when open) */
+  .chip[aria-pressed="true"],
+  #date-toggle[aria-expanded="true"] {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+    box-shadow: inset 0 0 0 2px rgba(13,148,136,.25);
+  }
   /* Evergreen-only filter chips (isolated from header chips) */
   .eg-chips {
     display: flex; gap: 10px 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -137,7 +144,12 @@
     color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: .9rem;
     min-height: 44px; font-weight: 700; cursor: pointer;
   }
-  .eg-chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .eg-chip[aria-pressed="true"] {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+    box-shadow: inset 0 0 0 2px rgba(13,148,136,.25);
+  }
   .panel {
     background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
     padding: 14px; margin-bottom: 16px; border: 1px solid var(--line);
@@ -381,7 +393,9 @@
     h1 { font-size: 1.05rem; line-height: 1.2; }
     /* Collapse secondary line to keep header slim */
     .sub { display: none; }
-    .chip { min-height: 44px; padding: 8px 12px; font-size: .9rem; }
+    /* Ensure all filter chips meet ≥44px tap target */
+    .chip, .eg-chip { min-height: 44px; padding: 8px 12px; font-size: .9rem; }
+    /* Keep #58 icon button sizing */
     .icon-btn { min-height: 44px; padding: 8px 12px; font-size: .85rem; font-weight: 700; }
     .pin-btn { min-height: 44px; }
   }
@@ -456,7 +470,7 @@
     .icon-btn { min-height: 44px; padding: 10px 14px; }
     .chips-bar { margin: 0 0 4px; }
     .chips { padding: 4px 0 0; gap: 8px 6px; }
-    .chip { padding: 10px 14px; } /* keep min-height at ≥44px */
+    .chip, .eg-chip { padding: 10px 14px; } /* keep min-height at ≥44px */
     #novedades-wrap { margin: 0 0 6px; }
     .novedades-box { padding: 4px 6px; }
     .novedades-list { gap: 0; }
@@ -490,9 +504,9 @@
     </header>
     <div class="chips-bar">
       <div class="chips" role="toolbar" aria-label="Filtros">
-        <button type="button" class="chip" data-preset="upcoming" aria-pressed="true">Importante</button>
-        <button type="button" class="chip" data-preset="weekend" aria-pressed="false">Este finde</button>
-        <button type="button" class="chip" data-preset="week" aria-pressed="false">7 días</button>
+        <button type="button" class="chip" data-preset="upcoming" aria-pressed="false" aria-label="Próximas 3 semanas" title="Próximas 3 semanas">Próximas 3 semanas</button>
+        <button type="button" class="chip" data-preset="weekend" aria-pressed="true" aria-label="Este fin de semana" title="Este fin de semana">Este finde</button>
+        <button type="button" class="chip" data-preset="week" aria-pressed="false" aria-label="Próximos 7 días" title="Próximos 7 días">7 días</button>
         <span id="month-chips" aria-label="Meses"></span>
         <button type="button" class="chip" id="date-toggle" aria-expanded="false" aria-controls="custom-inline" title="Rango libre">Fechas</button>
         <div id="custom-inline" title="Rango libre">
@@ -582,7 +596,10 @@
  
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
-  <p id="filter-empty" class="empty">Sin planes cerca de ti en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio o usa tu ubicación en Perfil.</p>
+  <p id="filter-empty" class="empty" hidden>
+    No hay planes con estos filtros.
+    <button type="button" class="chip" id="clear-filters" aria-label="Limpiar filtros" title="Limpiar filtros">Limpiar filtros</button>
+  </p>
   <p id="zone-empty" class="empty" hidden>
     Aún no hay planes cerca de ti — avísanos y priorizamos tu zona.
     <a id="zone-mailto" class="link-btn" href="#" title="Escribir email">Avisadnos</a>
@@ -2583,6 +2600,12 @@ function useCustomRange() {
   document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "false"));
   if (!fromEl.value) fromEl.value = ymd(TODAY);
   if (!toEl.value) toEl.value = ymd(addDays(TODAY, 14));
+  // Make the custom date chip look active and ensure the inline range is visible
+  if (dateToggle && customInline) {
+    dateToggle.setAttribute("aria-pressed", "true");
+    dateToggle.setAttribute("aria-expanded", "true");
+    try { customInline.classList.add("open"); } catch(_) {}
+  }
   render();
 }
 fromEl.addEventListener("change", useCustomRange);
@@ -2604,6 +2627,29 @@ readUnlockFromUrl();
 syncLockUI();
 render();
 renderNovedades();
+
+// Empty-state: clear filters action
+(function initClearFilters(){
+  const btn = document.getElementById("clear-filters");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    // Reset time filter to default (fin de semana)
+    mode = "weekend";
+    setChip(mode);
+    // Close and reset custom date range
+    if (dateToggle) {
+      dateToggle.setAttribute("aria-pressed", "false");
+      dateToggle.setAttribute("aria-expanded", "false");
+    }
+    if (customInline) { try { customInline.classList.remove("open"); } catch(_) {} }
+    if (fromEl) fromEl.value = ymd(TODAY);
+    if (toEl) toEl.value = ymd(addDays(TODAY, 14));
+    // Reset evergreen type filter
+    egFilter = "all";
+    try { syncEgFilterButtons(); } catch(_) {}
+    render();
+  });
+})();
 
 // Delegación global para botones «Fijar» en cards de eventos.
 // Evita apilar listeners en cada render() y centraliza el soft-gate.
