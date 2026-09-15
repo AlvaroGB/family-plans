@@ -439,6 +439,34 @@
     box-shadow: var(--shadow);
     padding: 14px;
   }
+  /* ---------- Phone densify (≈390px width) ---------- */
+  @media (max-width: 420px) {
+    .wrap { padding: 10px 12px calc(24px + var(--safe-b)); }
+    header {
+      margin: -8px -10px 6px;
+      padding: calc(6px + var(--safe-t)) 10px 4px;
+    }
+    .header-inner #buy-cta { margin-top: 4px; }
+    h1 { font-size: 1.12rem; }
+    .sub { display: none; }
+    /* Ensure header controls meet 44px tap target on phones */
+    .icon-btn { min-height: 44px; padding: 8px 12px; }
+    .chips-bar { margin: 0 0 4px; }
+    .chips { padding: 4px 0 0; gap: 8px 6px; }
+    .chip { padding: 6px 10px; } /* keep min-height at 38px */
+    #novedades-wrap { margin: 0 0 6px; }
+    .novedades-box { padding: 4px 6px; }
+    .novedades-list { gap: 0; }
+    .section-label { margin: 18px 0 8px; }
+    #list, #pinned { gap: 10px; }
+    .card { padding: 14px; }
+    /* Ensure card pin control meets 44px tap target on phones */
+    .pin-btn { min-height: 44px; padding: 8px 12px; }
+    .title { margin: 0 0 4px; }
+    .why { margin: 0 0 8px; }
+    .meta { margin: 0 0 8px; }
+    .empty { padding: 22px 10px; }
+  }
 </style>
 </head>
 <body>
