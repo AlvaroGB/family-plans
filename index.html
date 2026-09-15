@@ -270,6 +270,8 @@
   .eg-date { min-height: 32px; padding: 6px 8px; font-size: .9rem; }
   .eg-row .btn { flex: 0 0 auto; }
   #list, #pinned { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 8px; }
+  /* Weekend shortlist grid mirrors pinned/list */
+  #pinned-weekend { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 8px; }
   /* Evergreen grid and spacing */
   #evergreen { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 8px; }
   .card {
@@ -394,7 +396,7 @@
     /* Desktop: show free-range dates inline; the toggle chip is not needed */
     #custom-inline { display: flex !important; }
     #date-toggle { display: none; }
-    #list, #pinned { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  #list, #pinned, #pinned-weekend { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     #evergreen { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
@@ -405,7 +407,7 @@
     :root { --max: 1180px; }
     .wrap { padding: 28px 32px 48px; }
     header { margin: -28px -32px 22px; padding: calc(22px + var(--safe-t)) 32px 14px; }
-    #list, #pinned { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  #list, #pinned, #pinned-weekend { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
     #evergreen { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
     .card { min-height: 100%; display: flex; flex-direction: column; }
     .actions { margin-top: auto; }
@@ -459,7 +461,7 @@
     .novedades-box { padding: 4px 6px; }
     .novedades-list { gap: 0; }
     .section-label { margin: 18px 0 8px; }
-    #list, #pinned { gap: 10px; }
+  #list, #pinned, #pinned-weekend { gap: 10px; }
     .card { padding: 14px; }
     /* Ensure card pin control meets 44px tap target on phones */
     .pin-btn { min-height: 44px; padding: 8px 12px; }
@@ -522,6 +524,11 @@
         </div>
         <div class="mini-cal-dow" id="pinned-cal-dow" hidden></div>
         <div class="mini-cal-grid" id="pinned-cal" hidden></div>
+      </div>
+      <!-- Shortlist: Fijados de este fin de semana -->
+      <div id="pinned-weekend-wrap" hidden>
+        <div class="section-label">Fijados · este finde</div>
+        <div id="pinned-weekend"></div>
       </div>
       <div id="pinned"></div>
     </div>
@@ -1904,6 +1911,8 @@ let mode = "weekend";
 const list = document.getElementById("list");
 const pinnedEl = document.getElementById("pinned");
 const pinnedWrap = document.getElementById("pinned-wrap");
+const pinnedWeekendEl = document.getElementById("pinned-weekend");
+const pinnedWeekendWrap = document.getElementById("pinned-weekend-wrap");
 /* Mini calendario DOM refs */
 const pinnedCalWrap = document.getElementById("pinned-cal-wrap");
 const pinnedCal = document.getElementById("pinned-cal");
@@ -2237,6 +2246,13 @@ function render() {
   }
   const pinnedItems = resolvePinned();
   pinnedWrap.hidden = pinnedItems.length === 0;
+  // Weekend shortlist (Sat–Sun of current week)
+  if (pinnedWeekendEl && pinnedWeekendWrap) {
+    const [sat, sun] = upcomingWeekend(TODAY);
+    const weekendItems = pinnedItems.filter(ev => overlaps(ev, sat, sun));
+    pinnedWeekendWrap.hidden = weekendItems.length === 0;
+    pinnedWeekendEl.innerHTML = weekendItems.map(cardHTML).join("");
+  }
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
   // Mini calendario de pines
   renderPinnedCalendar(pinnedItems);
