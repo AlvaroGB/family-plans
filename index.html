@@ -2938,8 +2938,15 @@ if (useGeoBtn && "geolocation" in navigator) {
 
   if (auth && auth.onAuthStateChanged) {
     auth.onAuthStateChanged(function(user){
-      if (user) initialSync(user);
-      else setAuthUI(null);
+      if (user) {
+        // Mostrar UI de sesión inmediatamente tras resolver Auth, sin esperar a Firestore
+        setAuthUI(user);
+        // Sincronización en segundo plano (unión de pins/perfil/familia)
+        initialSync(user);
+      } else {
+        // Cierre de sesión inmediato
+        setAuthUI(null);
+      }
     });
   }
   // Hooks desde la app principal: guardar a nube cuando cambian pins/perfil
