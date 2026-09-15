@@ -28,15 +28,15 @@
 </script>
 <style>
   :root {
-    --bg: #f7f5f2; /* soft off-white base */
-    --card: #fff;
-    --ink: #12201e;
-    --muted: #5b6b68;
+    --bg: #f8fafc; /* crisp, cool near-white (not cream) */
+    --card: #ffffff;
+    --ink: #0f172a;     /* slate-900 */
+    --muted: #4b5563;   /* slate-600 for better legibility */
     --teal: #0f766e;
     --teal-soft: #ccfbf1;
     --amber: #b45309;
     --amber-soft: #ffedd5;
-    --line: #d7e2de;
+    --line: #e2e8f0;    /* slate-200 */
     --radius: 16px;
     --shadow: 0 1px 2px rgba(18,32,30,.05), 0 10px 28px rgba(18,32,30,.07);
     --safe-b: env(safe-area-inset-bottom, 0px);
@@ -45,15 +45,15 @@
   }
   /* Dark theme tokens */
   html[data-theme="dark"] {
-    --bg: #1c1917; /* cozy warm-dark base */
-    --card: #101a19;
-    --ink: #e6f0ee;
-    --muted: #a3b2ae;
+    --bg: #0b1312;      /* deep, cool dark */
+    --card: #0d1514;
+    --ink: #e6f0ee;     /* high contrast text */
+    --muted: #9fb0ac;   /* legible muted */
     --teal: #0f766e; /* brand stays */
     --teal-soft: #134e4a;
     --amber: #d97706;
     --amber-soft: #3a2a12;
-    --line: #263531;
+    --line: #1b2a27;
     --radius: 16px;
     --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.38);
   }
@@ -121,8 +121,8 @@
   .chip {
     display: inline-flex; align-items: center; justify-content: center;
     flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
-    color: var(--ink); border-radius: 999px; padding: 7px 12px; font-size: .85rem;
-    min-height: 38px; font-weight: 600; cursor: pointer;
+    color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: .9rem;
+    min-height: 44px; font-weight: 700; cursor: pointer;
   }
   .chip[aria-pressed="true"] { background: var(--teal); color: #fff; border-color: var(--teal); }
   /* Evergreen-only filter chips (isolated from header chips) */
@@ -168,8 +168,8 @@
   }
   .form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .section-label {
-    font-size: .72rem; text-transform: uppercase; letter-spacing: .07em;
-    color: var(--muted); margin: 36px 0 12px; font-weight: 700;
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin: 36px 0 12px; font-weight: 800;
   }
   /* Equalize top gap for all section labels; avoid wrapper collapse */
   #pinned-wrap { margin: 0 0 8px; overflow: auto; }
@@ -328,8 +328,8 @@
   .top-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   .pin-btn {
     flex: 0 0 auto; border: 1px solid var(--line); background: rgba(255,255,255,.75);
-    border-radius: 999px; min-height: 44px; padding: 8px 12px; font-size: .78rem;
-    font-weight: 700; color: var(--muted); cursor: pointer;
+    border-radius: 999px; min-height: 44px; padding: 10px 14px; font-size: .82rem;
+    font-weight: 800; color: var(--muted); cursor: pointer;
     display: inline-flex; align-items: center; gap: 6px;
   }
   html[data-theme="dark"] .pin-btn {
@@ -341,15 +341,15 @@
   .pin-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--teal-soft); }
   .pin-btn::before { content: "📌"; opacity: .9; }
   .pin-btn[aria-pressed="true"]::before { content: "📍"; }
-  .when { font-size: .82rem; color: var(--muted); margin: 0 0 4px; }
-  .title { font-size: 1.05rem; font-weight: 700; margin: 0 0 6px; letter-spacing: -.01em; }
-  .why { font-size: .92rem; margin: 0 0 10px; }
-  .meta { font-size: .8rem; color: var(--muted); margin: 0 0 12px; }
+  .when { font-size: .9rem; color: var(--muted); margin: 0 0 4px; }
+  .title { font-size: 1.18rem; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+  .why { font-size: 1rem; margin: 0 0 10px; }
+  .meta { font-size: .86rem; color: var(--muted); margin: 0 0 12px; }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center;
-    min-height: 42px; padding: 10px 14px; border-radius: 11px; font-size: .9rem;
-    font-weight: 650; text-decoration: none; border: none; cursor: pointer; flex: 1 1 auto;
+    min-height: 44px; padding: 12px 16px; border-radius: 12px; font-size: .95rem;
+    font-weight: 700; text-decoration: none; border: none; cursor: pointer; flex: 1 1 auto;
   }
   .btn.primary { background: var(--teal); color: #fff; }
   .btn.ghost { background: #fff; color: var(--teal); border: 1px solid #99f6e4; }
@@ -381,8 +381,8 @@
     h1 { font-size: 1.05rem; line-height: 1.2; }
     /* Collapse secondary line to keep header slim */
     .sub { display: none; }
-    .chip { min-height: 40px; padding: 8px 12px; font-size: .9rem; }
-    .icon-btn { min-height: 44px; padding: 6px 10px; font-size: .8rem; }
+    .chip { min-height: 44px; padding: 8px 12px; font-size: .9rem; }
+    .icon-btn { min-height: 44px; padding: 8px 12px; font-size: .85rem; font-weight: 700; }
     .pin-btn { min-height: 44px; }
   }
 
@@ -450,24 +450,24 @@
       padding: calc(6px + var(--safe-t)) 10px 4px;
     }
     .header-inner #buy-cta { margin-top: 4px; }
-    h1 { font-size: 1.12rem; }
+    h1 { font-size: 1.2rem; }
     .sub { display: none; }
     /* Ensure header controls meet 44px tap target on phones */
-    .icon-btn { min-height: 44px; padding: 8px 12px; }
+    .icon-btn { min-height: 44px; padding: 10px 14px; }
     .chips-bar { margin: 0 0 4px; }
     .chips { padding: 4px 0 0; gap: 8px 6px; }
-    .chip { padding: 6px 10px; } /* keep min-height at 38px */
+    .chip { padding: 10px 14px; } /* keep min-height at ≥44px */
     #novedades-wrap { margin: 0 0 6px; }
     .novedades-box { padding: 4px 6px; }
     .novedades-list { gap: 0; }
-    .section-label { margin: 18px 0 8px; }
+    .section-label { margin: 18px 0 8px; font-size: .82rem; }
   #list, #pinned, #pinned-weekend { gap: 10px; }
-    .card { padding: 14px; }
+    .card { padding: 16px; }
     /* Ensure card pin control meets 44px tap target on phones */
-    .pin-btn { min-height: 44px; padding: 8px 12px; }
+    .pin-btn { min-height: 44px; padding: 10px 14px; }
     .title { margin: 0 0 4px; }
-    .why { margin: 0 0 8px; }
-    .meta { margin: 0 0 8px; }
+    .why { margin: 0 0 8px; font-size: .98rem; }
+    .meta { margin: 0 0 8px; font-size: .86rem; }
     .empty { padding: 22px 10px; }
   }
 </style>
@@ -514,24 +514,7 @@
         <div id="novedades" class="novedades-list"></div>
       </div>
     </div>
-    <div id="pinned-wrap" hidden>
-      <div class="section-label">Fijados · lo que queréis hacer</div>
-      <!-- Calendario compacto para ver huecos y días con pines -->
-      <div id="pinned-cal-wrap">
-        <button type="button" class="chip" id="pinned-cal-toggle" aria-expanded="false" aria-controls="pinned-cal">Calendario</button>
-        <div class="mini-cal-head" id="pinned-cal-head" hidden>
-          <div class="mini-cal-title" id="pinned-cal-title"></div>
-        </div>
-        <div class="mini-cal-dow" id="pinned-cal-dow" hidden></div>
-        <div class="mini-cal-grid" id="pinned-cal" hidden></div>
-      </div>
-      <!-- Shortlist: Fijados de este fin de semana -->
-      <div id="pinned-weekend-wrap" hidden>
-        <div class="section-label">Fijados · este finde</div>
-        <div id="pinned-weekend"></div>
-      </div>
-      <div id="pinned"></div>
-    </div>
+ 
     <div id="live" class="sr-only" aria-live="polite"></div>
 
     <!-- Perfil (modal/sheet) -->
@@ -590,6 +573,13 @@
       </div>
     </div>
  
+    <!-- Weekend shortlist: visible always, honest empty state when none -->
+    <div id="pinned-weekend-wrap">
+      <div class="section-label">Fijados · este finde</div>
+      <div id="pinned-weekend"></div>
+      <p id="pinned-weekend-empty" class="empty" hidden>No hay Fijados para este finde. Toca «Fijar» en la lista.</p>
+    </div>
+ 
     <div class="section-label" id="list-label">Próximos</div>
     <div id="list"></div>
   <p id="filter-empty" class="empty">Sin planes cerca de ti en este tramo. Prueba «Este finde», elige otro mes arriba o amplía el radio o usa tu ubicación en Perfil.</p>
@@ -597,6 +587,20 @@
     Aún no hay planes cerca de ti — avísanos y priorizamos tu zona.
     <a id="zone-mailto" class="link-btn" href="#" title="Escribir email">Avisadnos</a>
   </p>
+  <!-- General pinned list with mini calendar (after main list for clearer flow) -->
+  <div id="pinned-wrap" hidden>
+    <div class="section-label">Fijados · lo que queréis hacer</div>
+    <!-- Calendario compacto para ver huecos y días con pines -->
+    <div id="pinned-cal-wrap">
+      <button type="button" class="chip" id="pinned-cal-toggle" aria-expanded="false" aria-controls="pinned-cal">Calendario</button>
+      <div class="mini-cal-head" id="pinned-cal-head" hidden>
+        <div class="mini-cal-title" id="pinned-cal-title"></div>
+      </div>
+      <div class="mini-cal-dow" id="pinned-cal-dow" hidden></div>
+      <div class="mini-cal-grid" id="pinned-cal" hidden></div>
+    </div>
+    <div id="pinned"></div>
+  </div>
     <!-- Evergreen pool (inventory-owned). Renders when window.EVERGREEN exists -->
     <div id="evergreen-wrap">
       <div class="section-label">Siempre disponibles</div>
@@ -2250,8 +2254,11 @@ function render() {
   if (pinnedWeekendEl && pinnedWeekendWrap) {
     const [sat, sun] = upcomingWeekend(TODAY);
     const weekendItems = pinnedItems.filter(ev => overlaps(ev, sat, sun));
-    pinnedWeekendWrap.hidden = weekendItems.length === 0;
+    // Always show the block; toggle a clear empty state instead of hiding
+    pinnedWeekendWrap.hidden = false;
     pinnedWeekendEl.innerHTML = weekendItems.map(cardHTML).join("");
+    const pinnedWeekendEmpty = document.getElementById("pinned-weekend-empty");
+    if (pinnedWeekendEmpty) pinnedWeekendEmpty.hidden = weekendItems.length !== 0;
   }
   pinnedEl.innerHTML = pinnedItems.map(cardHTML).join("");
   // Mini calendario de pines
